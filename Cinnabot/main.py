@@ -28,7 +28,8 @@ ADMIN_COMMANDS_RE = {
     "^\\ *leave(\\ +#+[a-zA-Z0-9\-\_]+)?\\ *$": "leave_channel",
     "^\\ *save channels\\ *$": "save_channels",
     "^\\ *load plugin(\\ +[a-zA-Z]+)\\ *$": "load_plugin",
-    "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
+    "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin",
+    "^\\ *tell(\\ +[a-zA-Z\\-_0-9\\|]+)\\ +on\\ +(#+[a-zA-Z0-9\-\_]+)\\ *:\\ *(.*)$": "tell"
 }
 
 class Cinnabot(object):
@@ -192,6 +193,9 @@ class Cinnabot(object):
         
         self._load_config()
         self._load_plugins()
+    
+    def _admin_tell(self, source, target, to_user, channel, msg):
+        self._irc_server_connection.privmsg(channel, to_user.rstrip().lstrip() + ": " + msg.rstrip().lstrip())
     
     def _try_admin_command(self, source, target, command):
         logging.info("_try_admin_command:" + source + ":" + target + ":" + command)
