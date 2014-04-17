@@ -43,6 +43,8 @@ class GitHubPlugin(BasePlugin):
             return None
             
     def process_channel_message(self, source, target, msg):
+        if source.startswith("GitHub"):
+            return
         if not hasattr(self, "_packages_list"):
             self._load_packages_list()
         while u'\x03' in msg:
