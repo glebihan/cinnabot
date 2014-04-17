@@ -1,0 +1,7 @@
+#! /usr/bin/python
+# -*- coding=utf-8 -*-
+
+from Cinnabot.main import Cinnabot
+
+if __name__ == "__main__":
+    Cinnabot().run()
