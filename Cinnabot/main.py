@@ -117,28 +117,31 @@ class Cinnabot(object):
         
         for section in self.config.sections():
             if section.startswith("Plugin/"):
-                if self.config.get(section, "enabled") == "true":
+                if self.config.getboolean(section, "enabled"):
                     plugin_name = section[7:]
                     self._load_plugin(plugin_name)
+    
+    def _is_admin(self, mask):
+        for admin_mask in self._admin_masks:
+            if admin_mask.match(mask):
+                return True
+        return False
     
     def _handle_message(self, source, target, msg):
         logging.info("_handle_message:" + source + ":" + target + ":" + msg)
         
-        from_admin = False
-        for admin_mask in self._admin_masks:
-            if admin_mask.match(source):
-                from_admin = True
-                break
+        from_admin = self._is_admin(source)
         
         if from_admin:
             if self._try_admin_command(source, target, msg):
                 return
         
         for plugin in self._plugins.values():
-            if target.startswith("#") and target in plugin.get_channels():
-                plugin.handle_highlight(source, target, msg)
-            elif target == self._irc_server_connection.get_nickname():
-                plugin.handle_privmsg(source, target, msg)
+            if from_admin or not plugin.need_admin():
+                if target.startswith("#") and target in plugin.get_channels():
+                    plugin.handle_highlight(source, target, msg)
+                elif target == self._irc_server_connection.get_nickname():
+                    plugin.handle_privmsg(source, target, msg)
     
     def _admin_quit(self, source, target):
         logging.info("_admin_quit")
@@ -210,9 +213,11 @@ class Cinnabot(object):
             msg = highlight.group(2)
             self._handle_message(event.source, event.target, msg)
         else:
+            from_admin = self._is_admin(event.source)
             for plugin in self._plugins.values():
-                if event.target.startswith("#") and event.target in plugin.get_channels():
-                    plugin.handle_channel_message(event.source, event.target, event.arguments[0])
+                if from_admin or not plugin.need_admin():
+                    if event.target.startswith("#") and event.target in plugin.get_channels():
+                        plugin.handle_channel_message(event.source, event.target, event.arguments[0])
     
     def _on_irc_privmsg(self, server_connection, event):
         logging.info("_on_irc_privmsg:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))

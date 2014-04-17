@@ -20,4 +20,4 @@ class DrinksPlugin(BasePlugin):
                 return self.action_response(target, "%s %s a %s of %s" % (verb, source.split("!")[0], glass_type, drink))
     
     def process_privmsg(self, source, target, msg):
-        self.process_highlight(source, target, msg)
+        return self.process_highlight(source, target, msg)

@@ -70,6 +70,9 @@ class BasePlugin(object):
     def _get_config(self, key):
         return self._bot.config.get("Plugin/" + self._plugin_name, key)
     
+    def need_admin(self):
+        return self._bot.config.has_option("Plugin/" + self._plugin_name, "need_admin") and self._bot.config.getboolean("Plugin/" + self._plugin_name, "need_admin")
+    
     def get_channels(self):
         return self._get_config("channels").split(",")
     
