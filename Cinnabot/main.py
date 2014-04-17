@@ -137,7 +137,7 @@ class Cinnabot(object):
                 return
         
         for plugin in self._plugins.values():
-            if from_admin or not plugin.need_admin():
+            if (from_admin or not plugin.need_admin()) and plugin.check_permission(source):
                 if target.startswith("#") and target in plugin.get_channels():
                     plugin.handle_highlight(source, target, msg)
                 elif target == self._irc_server_connection.get_nickname():
@@ -215,7 +215,7 @@ class Cinnabot(object):
         else:
             from_admin = self._is_admin(event.source)
             for plugin in self._plugins.values():
-                if from_admin or not plugin.need_admin():
+                if (from_admin or not plugin.need_admin()) and plugin.check_permission(event.source):
                     if event.target.startswith("#") and event.target in plugin.get_channels():
                         plugin.handle_channel_message(event.source, event.target, event.arguments[0])
     

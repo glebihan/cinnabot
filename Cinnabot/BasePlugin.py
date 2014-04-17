@@ -4,6 +4,7 @@
 import logging
 import threading
 import sys
+import re
 
 class PluginResponse(object):
     pass
@@ -75,6 +76,18 @@ class BasePlugin(object):
     
     def get_channels(self):
         return self._get_config("channels").split(",")
+    
+    def check_permission(self, source):
+        allowed_user_masks = []
+        for key in self._bot.config.options("Plugin/" + self._plugin_name):
+            if key.startswith("allowed_user_mask"):
+                allowed_user_masks.append(re.compile(self._bot.config.get("Plugin/" + self._plugin_name, key)))
+        if len(allowed_user_masks) == 0:
+            return True
+        for mask in allowed_user_masks:
+            if mask.match(source):
+                return True
+        return False
     
     def _start_task(self, method, *args):
         self._task_id += 1
