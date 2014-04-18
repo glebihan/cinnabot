@@ -18,7 +18,11 @@ class EasyLRHPlugin(BasePlugin):
             c = httplib2.Http()
             c.add_credentials(self._get_config("easylrh_username"), self._get_config("easylrh_password"))
             c.request(url)
-            return self.privmsg_response(target, "Build request sent")
+            if target.startswith("#"):
+                resp_target = target
+            else:
+                resp_target = source.split("!")[0]
+            return self.privmsg_response(resp_target, "Build request sent")
     
     def process_privmsg(self, source, target, msg):
         return self.process_highlight(source, target, msg)

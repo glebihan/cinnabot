@@ -17,7 +17,11 @@ class DrinksPlugin(BasePlugin):
         words = [word.rstrip().lstrip() for word in msg.split(" ") if word.rstrip().lstrip() != ""]
         for drink, glass_type, verb in DRINKS:
             if " ".join([word.lower() for word in words]) in [drink, "make " + drink, "serve me " + drink, "serve me a " + drink, "serve " + drink, "make me " + drink, "make me a " + drink]:
-                return self.action_response(target, "%s %s a %s of %s" % (verb, source.split("!")[0], glass_type, drink))
+                if target.startswith("#"):
+                    resp_target = target
+                else:
+                    resp_target = source.split("!")[0]
+                return self.action_response(resp_target, "%s %s a %s of %s" % (verb, source.split("!")[0], glass_type, drink))
     
     def process_privmsg(self, source, target, msg):
         return self.process_highlight(source, target, msg)
