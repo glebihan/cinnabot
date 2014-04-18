@@ -243,12 +243,12 @@ class Cinnabot(object):
         if highlight:
             msg = highlight.group(2)
             self._handle_message(event.source, event.target, msg)
-        else:
-            from_admin = self._is_admin(event.source)
-            for plugin in self._plugins.values():
-                if (from_admin or not plugin.need_admin()) and plugin.check_permission(event.source):
-                    if event.target.startswith("#") and event.target in plugin.get_channels():
-                        plugin.handle_channel_message(event.source, event.target, event.arguments[0])
+
+        from_admin = self._is_admin(event.source)
+        for plugin in self._plugins.values():
+            if (from_admin or not plugin.need_admin()) and plugin.check_permission(event.source):
+                if event.target.startswith("#") and event.target in plugin.get_channels():
+                    plugin.handle_channel_message(event.source, event.target, event.arguments[0])
     
     def _on_irc_privmsg(self, server_connection, event):
         logging.info("_on_irc_privmsg:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
