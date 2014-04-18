@@ -71,17 +71,29 @@ class BasePlugin(object):
     def _get_config(self, key):
         return self._bot.config.get("Plugin/" + self._plugin_name, key)
     
+    def _get_config_options(self):
+        return self._bot.config.options("Plugin/" + self._plugin_name)
+    
+    def _get_boolean_config(self, key):
+        return self._bot.config.getboolean("Plugin/" + self._plugin_name, key)
+    
+    def _has_config(self, key):
+        return self._bot.config.has_option("Plugin/" + self._plugin_name, key)
+    
     def need_admin(self):
-        return self._bot.config.has_option("Plugin/" + self._plugin_name, "need_admin") and self._bot.config.getboolean("Plugin/" + self._plugin_name, "need_admin")
+        return self._has_config("need_admin") and self._get_boolean_config("need_admin")
     
     def get_channels(self):
-        return self._get_config("channels").split(",")
+        if self._has_config("channels"):
+            return self._get_config("channels").split(",")
+        else:
+            return []
     
     def check_permission(self, source):
         allowed_user_masks = []
-        for key in self._bot.config.options("Plugin/" + self._plugin_name):
+        for key in self._get_config_options():
             if key.startswith("allowed_user_mask"):
-                allowed_user_masks.append(re.compile(self._bot.config.get("Plugin/" + self._plugin_name, key)))
+                allowed_user_masks.append(re.compile(self._get_config(key)))
         if len(allowed_user_masks) == 0:
             return True
         for mask in allowed_user_masks:
