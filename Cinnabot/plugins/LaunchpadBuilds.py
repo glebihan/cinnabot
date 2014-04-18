@@ -62,20 +62,21 @@ class LaunchpadBuildsPlugin(BasePlugin):
         BasePlugin.__init__(self, bot, plugin_name)
         
         bot._irc.execute_every(900, self._check_failed_builds)
-        self._check_failed_builds(True)
+        self._check_failed_builds()
         
         self._known_builds = []
+        self._has_run = False
     
     def unload(self):
         self._unloaded = True
     
-    def _check_failed_builds(self, first = False):
+    def _check_failed_builds(self):
         if hasattr(self, "_unloaded") and self._unloaded:
             return
         
-        self._start_task(self._do_check_failed_builds, first)
+        self._start_task(self._do_check_failed_builds)
     
-    def _do_check_failed_builds(self, first = False):
+    def _do_check_failed_builds(self):
         logging.info("LaunchpadBuildsPlugin:_do_check_failed_builds")
         
         url = "https://launchpad.net/~gwendal-lebihan-dev/+archive/cinnamon-nightly/+builds?build_text=&build_state=failed&batch=200"
@@ -93,10 +94,12 @@ class LaunchpadBuildsPlugin(BasePlugin):
                     build_id = a.prop("href").split("/")[-1]
                     title = a.getContent().rstrip().lstrip()
             if title != None and log_link != None and build_id != None:
-                if first:
+                if not self._has_run:
                     self._known_builds.append(build_id)
                 else:
                     if not build_id in self._known_builds:
                         self._known_builds.append(build_id)
                         package = title.split(" ")[3]
                         return self.privmsg_response(self._get_config("output_channel"), u"[\x0313%s\x0f] \x0305\x02Failed build: \x0f%s \x0302\x1f%s\x0f" % (package, title, log_link))
+        
+        self._has_run = True
