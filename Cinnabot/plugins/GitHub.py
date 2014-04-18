@@ -6,15 +6,26 @@ import urllib
 import json
 
 class GitHubPlugin(BasePlugin):
+    def _get_watch_users(self):
+        users = []
+        for i in self._get_config_options():
+            if i.startswith("watch_github_user"):
+                users.append(self._get_config(i))
+        return users
+        
     def _load_packages_list(self):
         self._packages_list = []
-        page = 1
-        repos = self._retrieve_github_info("https://api.github.com/users/linuxmint/repos?access_token=%s" % self._get_config("github_access_token"))
-        while repos and len(repos) > 0:
-            for repo in repos:
-                self._packages_list.append(repo["name"])
-            page += 1
-            repos = self._retrieve_github_info("https://api.github.com/users/linuxmint/repos?access_token=%s&page=%d" % (self._get_config("github_access_token"), page))
+        self._packages_per_user = {}
+        for user in self._get_watch_users():
+            self._packages_per_user[user] = []
+            page = 1
+            repos = self._retrieve_github_info("https://api.github.com/users/%s/repos?access_token=%s" % (user, self._get_config("github_access_token")))
+            while repos and len(repos) > 0:
+                for repo in repos:
+                    self._packages_list.append(repo["name"])
+                    self._packages_per_user[user].append(repo["name"])
+                page += 1
+                repos = self._retrieve_github_info("https://api.github.com/users/%s/repos?access_token=%s&page=%d" % (user, self._get_config("github_access_token"), page))
     
     def _retrieve_github_info(self, url):
         try:
@@ -92,7 +103,9 @@ class GitHubPlugin(BasePlugin):
         if len(issues_numbers) > 0:
             for package in packages_list:
                 for issue_number in issues_numbers:
-                    issues_urls.append("https://api.github.com/repos/linuxmint/%s/issues/%d?access_token=%s" % (package, issue_number, self._get_config("github_access_token")))
+                    for user in self._get_watch_users():
+                        if package in self._packages_per_user[user]:
+                            issues_urls.append("https://api.github.com/repos/%s/%s/issues/%d?access_token=%s" % (user, package, issue_number, self._get_config("github_access_token")))
         for url in issues_urls:
             issue_info = self._retrieve_github_info(url)
             if issue_info:
