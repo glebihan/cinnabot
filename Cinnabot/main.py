@@ -31,10 +31,26 @@ ADMIN_COMMANDS_RE = {
     "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
 }
 
+class CustomLogHandler(logging.StreamHandler):
+    def __init__(self, bot):
+        logging.StreamHandler.__init__(self)
+        
+        self._bot = bot
+        
+        formatter = logging.Formatter(logging.BASIC_FORMAT, None)
+        self.setFormatter(formatter)
+    
+    def handle(self, record):
+        logging.StreamHandler.handle(self, record)
+        
+        if record.levelno >= logging.WARN:
+            self._bot.send_warn_privmsg(self.format(record))
+
 class Cinnabot(object):
     def __init__(self):
         self._parse_cli_options()
         self._load_config()
+        self._init_logger()
         
         self._admin_commands = {}
         for regexp in ADMIN_COMMANDS_RE:
@@ -51,7 +67,18 @@ class Cinnabot(object):
         self.cli_options = optparser.parse_args()[0]
         
         self.cli_options.config_file = os.path.realpath(self.cli_options.config_file)
+    
+    def _init_logger(self):
         logging.getLogger().setLevel(DEBUG_LEVELS[self.cli_options.debug_level])
+        
+        custom_handler = CustomLogHandler(self)
+        logging.getLogger().addHandler(custom_handler)
+        
+        file_handler = logging.FileHandler(os.path.join(os.getenv("HOME"), ".config", "cinnabot", "cinnabot.log"))
+        file_handler.setLevel(logging.WARN)
+        formatter = logging.Formatter("%(asctime)s:" + logging.BASIC_FORMAT, None)
+        file_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(file_handler)
     
     def _load_config(self):
         self.config = ConfigParser.RawConfigParser()
@@ -61,6 +88,10 @@ class Cinnabot(object):
         for key in self.config.options("Admin"):
             if key.startswith("admin_mask"):
                 self._admin_masks.append(re.compile(self.config.get("Admin", key)))
+    
+    def send_warn_privmsg(self, msg):
+        if self.config.has_option("General", "send_log_to"):
+            self._irc_server_connection.privmsg(self.config.get("General", "send_log_to"), u"\x0305\x02" + msg + u"\x0f")
     
     def _save_config(self):
         f = open(self.cli_options.config_file, "w")
