@@ -6,6 +6,8 @@ import urllib
 import urlparse
 import libxml2
 import logging
+import json
+import httplib2
 
 class HTMLNode(object):
     def __init__(self, xml_node):
@@ -66,6 +68,7 @@ class LaunchpadBuildsPlugin(BasePlugin):
         
         self._known_builds = []
         self._has_run = False
+        self._last_date = None
     
     def unload(self):
         self._unloaded = True
@@ -75,6 +78,15 @@ class LaunchpadBuildsPlugin(BasePlugin):
             return
         
         self._start_task(self._do_check_failed_builds)
+    
+    def _shorten_url(self, url):
+        try:
+            c = httplib2.Http()
+            resp, content = c.request("https://www.googleapis.com/urlshortener/v1/url?key=" + self._get_config("google_url_shortener_api_key"), "POST", headers = {"Content-Type": "application/json"}, body = json.dumps({"longUrl": url}))
+            res = json.loads(content)["id"]
+        except:
+            res = url
+        return res
     
     def _do_check_failed_builds(self):
         logging.info("LaunchpadBuildsPlugin:_do_check_failed_builds")
@@ -86,20 +98,34 @@ class LaunchpadBuildsPlugin(BasePlugin):
         for build_tr in tree.find("table", **{'class': 'listing'})[0].find("tr"):
             title = None
             log_link = None
+            build_link = None
             build_id = None
+            is_failed = False
+            build_date = None
             for a in build_tr.find("a"):
                 if a.getContent().rstrip().lstrip() == "see the log":
                     log_link = urlparse.urljoin(url, a.prop("href"))
                 elif "/+build/" in a.prop("href"):
                     build_id = a.prop("href").split("/")[-1]
+                    build_link = urlparse.urljoin(url, a.prop("href"))
                     title = a.getContent().rstrip().lstrip()
-            if title != None and log_link != None and build_id != None:
+            img = build_tr.find("img")
+            if len(img) == 1 and img[0].prop("src") != None and img[0].prop("src").endswith("/build-failed"):
+                is_failed = True
+            spans = build_tr.find("span")
+            if len(spans) > 0:
+                build_date = spans[0].getContent()[3:]
+            if build_link != None and title != None and log_link != None and build_id != None and is_failed and build_date != None and (self._last_date == None or build_date >= self._last_date):
+                if self._last_date == None:
+                    self._last_date = build_date
+                else:
+                    self._last_date = max(self._last_date, build_date)
                 if not self._has_run:
                     self._known_builds.append(build_id)
                 else:
                     if not build_id in self._known_builds:
                         self._known_builds.append(build_id)
                         package = title.split(" ")[3]
-                        return self.privmsg_response(self._get_config("output_channel"), u"[\x0313%s\x0f] \x0305\x02Failed build: \x0f%s \x0302\x1f%s\x0f" % (package, title, log_link))
+                        return self.privmsg_response(self._get_config("output_channel"), u"[\x0313%s\x0f] \x0305\x02Failed build: \x0f%s \x0302\x1f%s\x0f, build log : \x0302\x1f%s\x0f" % (package, title, self._shorten_url(build_link), self._shorten_url(log_link)))
         
         self._has_run = True
