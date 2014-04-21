@@ -89,17 +89,14 @@ class BasePlugin(object):
         else:
             return []
     
-    def check_permission(self, source):
-        allowed_user_masks = []
+    def check_permission(self, username):
+        allowed_usernames = []
         for key in self._get_config_options():
-            if key.startswith("allowed_user_mask"):
-                allowed_user_masks.append(re.compile(self._get_config(key)))
-        if len(allowed_user_masks) == 0:
+            if key.startswith("allowed_username"):
+                allowed_usernames.append(self._get_config(key))
+        if len(allowed_usernames) == 0:
             return True
-        for mask in allowed_user_masks:
-            if mask.match(source):
-                return True
-        return False
+        return username != "" and username in allowed_usernames
     
     def _start_task(self, method, *args):
         self._task_id += 1

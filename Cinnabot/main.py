@@ -59,6 +59,10 @@ class Cinnabot(object):
         self._is_saving_channels = False
         
         self._plugins = {}
+        
+        self._identify_user_queue = {}
+        self._nick_to_mask_map = {}
+        self._nick_to_username_map = {}
     
     def _parse_cli_options(self):
         optparser = optparse.OptionParser()
@@ -84,10 +88,10 @@ class Cinnabot(object):
         self.config = ConfigParser.RawConfigParser()
         self.config.read(self.cli_options.config_file)
         
-        self._admin_masks = []
+        self._admin_usernames = []
         for key in self.config.options("Admin"):
-            if key.startswith("admin_mask"):
-                self._admin_masks.append(re.compile(self.config.get("Admin", key)))
+            if key.startswith("admin_username"):
+                self._admin_usernames.append(self.config.get("Admin", key))
     
     def send_warn_privmsg(self, msg):
         if self.config.has_option("General", "send_log_to"):
@@ -152,23 +156,42 @@ class Cinnabot(object):
                     plugin_name = section[7:]
                     self._load_plugin(plugin_name)
     
-    def _is_admin(self, mask):
-        for admin_mask in self._admin_masks:
-            if admin_mask.match(mask):
-                return True
-        return False
+    def _is_admin(self, username):
+        return username != "" and username in self._admin_usernames
+    
+    def _identify_user(self, source, callback, *args):
+        nickname = source.split("!")[0]
+        if not nickname in self._nick_to_mask_map or self._nick_to_mask_map[nickname] != source:
+            if nickname in self._nick_to_mask_map:
+                del self._nick_to_mask_map[nickname]
+            if nickname in self._nick_to_username_map:
+                del self._nick_to_username_map[nickname]
+        
+        if nickname in self._nick_to_username_map:
+            callback(self._nick_to_username_map[nickname], *args)
+        else:
+            self._nick_to_mask_map[nickname] = source
+            if not nickname in self._identify_user_queue:
+                self._identify_user_queue[nickname] = []
+            self._identify_user_queue[nickname].append((callback, args))
+            self._irc_server_connection.whois([nickname])
     
     def _handle_message(self, source, target, msg):
         logging.info("_handle_message:" + source + ":" + target + ":" + msg)
         
-        from_admin = self._is_admin(source)
+        self._identify_user(source, self._do_handle_message, source, target, msg)
+    
+    def _do_handle_message(self, from_username, source, target, msg):
+        logging.info("_do_handle_message:" + from_username + ":" + source + ":" + target + ":" + msg)
+        
+        from_admin = self._is_admin(from_username)
         
         if from_admin:
             if self._try_admin_command(source, target, msg):
                 return
         
         for plugin in self._plugins.values():
-            if (from_admin or not plugin.need_admin()) and plugin.check_permission(source):
+            if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
                 if target.startswith("#") and target in plugin.get_channels():
                     plugin.handle_highlight(source, target, msg)
                 elif target == self._irc_server_connection.get_nickname():
@@ -243,10 +266,15 @@ class Cinnabot(object):
         if highlight:
             msg = highlight.group(2)
             self._handle_message(event.source, event.target, msg)
-
-        from_admin = self._is_admin(event.source)
+        
+        self._identify_user(event.source, self._process_irc_pubmsg, event)
+    
+    def _process_irc_pubmsg(self, from_username, event):
+        logging.info("_process_irc_pubmsg:" + from_username + ":" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        from_admin = self._is_admin(from_username)
         for plugin in self._plugins.values():
-            if (from_admin or not plugin.need_admin()) and plugin.check_permission(event.source):
+            if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
                 if event.target.startswith("#") and event.target in plugin.get_channels():
                     plugin.handle_channel_message(event.source, event.target, event.arguments[0])
     
@@ -263,12 +291,32 @@ class Cinnabot(object):
             self._save_config()
             self._is_saving_channels = False
     
+    def _on_irc_user_login_info(self, server_connection, event):
+        logging.info("_on_irc_user_login_info:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        self._nick_to_username_map[event.arguments[0]] = event.arguments[1]
+    
+    def _on_irc_endofwhois(self, server_connection, event):
+        logging.info("_on_irc_endofwhois:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        nickname = event.arguments[0]
+        if not nickname in self._nick_to_username_map:
+            self._nick_to_username_map[nickname] = ""
+        
+        if nickname in self._identify_user_queue:
+            while len(self._identify_user_queue[nickname]) > 0:
+                callback, args = self._identify_user_queue[nickname][0]
+                del self._identify_user_queue[nickname][0]
+                callback(self._nick_to_username_map[nickname], *args)
+    
     def _connect(self):
         self._irc = irc.client.IRC()
         self._irc.add_global_handler("pubmsg", self._on_irc_pubmsg)
         self._irc.add_global_handler("privmsg", self._on_irc_privmsg)
         self._irc.add_global_handler("welcome", self._on_irc_welcome)
         self._irc.add_global_handler("900", self._on_irc_login)
+        self._irc.add_global_handler("330", self._on_irc_user_login_info)
+        self._irc.add_global_handler("endofwhois", self._on_irc_endofwhois)
         self._irc.add_global_handler("whoischannels", self._on_irc_whoischannels)
         self._irc_server_connection = self._irc.server()
         self._irc_server_connection.connect(
