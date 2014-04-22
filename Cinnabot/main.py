@@ -327,6 +327,7 @@ class Cinnabot(object):
         self._irc.add_global_handler("endofwhois", self._on_irc_endofwhois)
         self._irc.add_global_handler("whoischannels", self._on_irc_whoischannels)
         self._irc_server_connection = self._irc.server()
+        self._irc_server_connection.buffer_class.errors = 'replace'
         self._irc_server_connection.connect(
             server = self.config.get("General", "server"),
             nickname = self.config.get("General", "nickname"),
