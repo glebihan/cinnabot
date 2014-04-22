@@ -20,14 +20,14 @@ TODO_LIST_COMMANDS = {
 }
 
 TODO_HELP_TEXT = """To manage your TODO list, you can use the following commands :
-%nickname%, todo                            # shows your TODO list
-%nickname%, show todo                       # shows your TODO list
-%nickname%, show todo list                  # shows your TODO list
-%nickname%, todo list                       # shows your TODO list
-%nickname%, add todo <todo_item>            # adds an item to your TODO list
-%nickname%, remove todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
-%nickname%, delete todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
-%nickname%, clear todo list                 # clears your TODO list"""
+/msg %nickname% todo                            # shows your TODO list
+/msg %nickname% show todo                       # shows your TODO list
+/msg %nickname% show todo list                  # shows your TODO list
+/msg %nickname% todo list                       # shows your TODO list
+/msg %nickname% add todo <todo_item>            # adds an item to your TODO list
+/msg %nickname% remove todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
+/msg %nickname% delete todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
+/msg %nickname% clear todo list                 # clears your TODO list"""
 
 class TODOListPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
