@@ -214,7 +214,7 @@ class Cinnabot(object):
     def _admin_update(self, source, target):
         logging.info("_admin_update")
         
-        for line in subprocess.check_output(["git", "-C", os.path.split(os.path.realpath(sys.argv[0]))[0], "pull"]).splitlines():
+        for line in subprocess.check_output(["git", "--git-dir", os.path.join(os.path.split(os.path.realpath(sys.argv[0]))[0], ".git"), "pull"]).splitlines():
             self._irc_server_connection.privmsg(source.split("!")[0], line)
     
     def _admin_join_channel(self, source, target, channel):
