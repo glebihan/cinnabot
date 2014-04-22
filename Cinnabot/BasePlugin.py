@@ -25,6 +25,14 @@ class PluginActionResponse(PluginResponse):
     def process(self, irc, irc_server_connection):
         irc_server_connection.action(self._target, self._msg)
 
+class PluginNoticeResponse(PluginResponse):
+    def __init__(self, target, msg):
+        self._target = target
+        self._msg = msg
+    
+    def process(self, irc, irc_server_connection):
+        irc_server_connection.notice(self._target, self._msg)
+
 class PluginTask(object):
     def __init__(self, task_id, callback, method, *args):
         self._task_id = task_id
@@ -127,6 +135,9 @@ class BasePlugin(object):
     
     def action_response(self, target, msg):
         return PluginActionResponse(target, msg)
+        
+    def notice_response(self, target, msg):
+        return PluginNoticeResponse(target, msg)
     
     def process_tasks(self):
         for task_id in self._tasks.keys():
@@ -134,6 +145,12 @@ class BasePlugin(object):
             if not task.is_alive():
                 if isinstance(task.result, PluginResponse):
                     self._bot.process_plugin_response(task.result)
+                elif type(task.result) == list:
+                    if len([i for i in task.result if not isinstance(i, PluginResponse)]) > 0:
+                        logging.warn("Incorrect plugin response : " + str(task.result))
+                    else:
+                        for i in task.result:
+                            self._bot.process_plugin_response(i)
                 elif task.result != None:
                     logging.warn("Incorrect plugin response : " + str(task.result))
                 del self._tasks[task_id]
