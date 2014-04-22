@@ -9,6 +9,7 @@ import logging
 import re
 import sys
 import imp
+import subprocess
 
 DEBUG_LEVELS = {
    0: logging.FATAL,
@@ -21,6 +22,7 @@ DEBUG_LEVELS = {
 ADMIN_COMMANDS_RE = {
     "^\\ *quit\\ *$": "quit",
     "^\\ *restart\\ *$": "restart",
+    "^\\ *update\\ *$": "update",
     "^\\ *reload\ config\\ *$": "reload_config",
     "^\\ *join\\ channel(\\ +#+[a-zA-Z0-9\\-\\_]+)\\ *$": "join_channel",
     "^\\ *join(\\ +#+[a-zA-Z0-9\\-\\_]+)\\ *$": "join_channel",
@@ -208,6 +210,12 @@ class Cinnabot(object):
         
         self._irc.disconnect_all()
         os.execvp(sys.argv[0], tuple(sys.argv))
+    
+    def _admin_update(self, source, target):
+        logging.info("_admin_update")
+        
+        for line in subprocess.check_output(["git", "-C", os.path.split(os.path.realpath(sys.argv[0]))[0], "pull"]).splitlines():
+            self._irc_server_connection.privmsg(source.split("!")[0], line)
     
     def _admin_join_channel(self, source, target, channel):
         logging.info("_admin_join_channel:" + channel)
