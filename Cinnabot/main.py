@@ -195,9 +195,9 @@ class Cinnabot(object):
         for plugin in self._plugins.values():
             if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
                 if target.startswith("#") and target in plugin.get_channels():
-                    plugin.handle_highlight(source, target, msg)
+                    plugin.handle_highlight(from_username, source, target, msg)
                 elif target == self._irc_server_connection.get_nickname():
-                    plugin.handle_privmsg(source, target, msg)
+                    plugin.handle_privmsg(from_username, source, target, msg)
     
     def _admin_quit(self, source, target):
         logging.info("_admin_quit")

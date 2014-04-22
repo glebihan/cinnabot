@@ -8,7 +8,7 @@ import httplib2
 REG_EXP = re.compile("^\\ *build\\ +([a-z\-]+)\\ *(on\\ +([a-z]+))?\\ *$")
 
 class EasyLRHPlugin(BasePlugin):
-    def process_highlight(self, source, target, msg):
+    def process_highlight(self, from_username, source, target, msg):
         match = REG_EXP.match(msg)
         if match:
             package, ig, distro_code = match.groups()
@@ -24,5 +24,5 @@ class EasyLRHPlugin(BasePlugin):
                 resp_target = source.split("!")[0]
             return self.privmsg_response(resp_target, content)
     
-    def process_privmsg(self, source, target, msg):
-        return self.process_highlight(source, target, msg)
+    def process_privmsg(self, from_username, source, target, msg):
+        return self.process_highlight(from_username, source, target, msg)

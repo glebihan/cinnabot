@@ -112,17 +112,17 @@ class BasePlugin(object):
         self._tasks[self._task_id] = task
         task.run()
     
-    def handle_highlight(self, source, target, msg):
-        logging.info("plugin_handle_highlight:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)
+    def handle_highlight(self, from_username, source, target, msg):
+        logging.info("plugin_handle_highlight:" + self._plugin_name + ":" + from_username + ":" + source + ":" + target + ":" + msg)
         
         if hasattr(self, "process_highlight"):
-            self._start_task(self.process_highlight, source, target, msg)
+            self._start_task(self.process_highlight, from_username, source, target, msg)
         
-    def handle_privmsg(self, source, target, msg):
-        logging.info("plugin_handle_privmsg:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)
+    def handle_privmsg(self, from_username, source, target, msg):
+        logging.info("plugin_handle_privmsg:" + self._plugin_name + ":" + from_username + ":" + source + ":" + target + ":" + msg)
         
         if hasattr(self, "process_privmsg"):
-            self._start_task(self.process_privmsg, source, target, msg)
+            self._start_task(self.process_privmsg, from_username, source, target, msg)
     
     def handle_channel_message(self, source, target, msg):
         logging.info("plugin_handle_channel_message:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)

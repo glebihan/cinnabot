@@ -7,7 +7,7 @@ import re
 REG_EXP = re.compile("^(#+[a-zA-Z0-9\\-\\_]+)\\ +(.*)$")
 
 class TalkPlugin(BasePlugin):
-    def process_privmsg(self, source, target, msg):
+    def process_privmsg(self, from_username, source, target, msg):
         match = REG_EXP.match(msg)
         if match:
             channel, resp = match.groups()

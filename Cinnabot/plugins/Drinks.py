@@ -13,7 +13,7 @@ DRINKS = [
 ]
 
 class DrinksPlugin(BasePlugin):
-    def process_highlight(self, source, target, msg):
+    def process_highlight(self, from_username, source, target, msg):
         words = [word.rstrip().lstrip() for word in msg.split(" ") if word.rstrip().lstrip() != ""]
         for drink, glass_type, verb in DRINKS:
             if " ".join([word.lower() for word in words]) in [drink, "make " + drink, "serve me " + drink, "serve me a " + drink, "serve " + drink, "make me " + drink, "make me a " + drink]:
@@ -23,5 +23,5 @@ class DrinksPlugin(BasePlugin):
                     resp_target = source.split("!")[0]
                 return self.action_response(resp_target, "%s %s a %s of %s" % (verb, source.split("!")[0], glass_type, drink))
     
-    def process_privmsg(self, source, target, msg):
-        return self.process_highlight(source, target, msg)
+    def process_privmsg(self, from_username, source, target, msg):
+        return self.process_highlight(from_username, source, target, msg)

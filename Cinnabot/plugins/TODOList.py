@@ -11,9 +11,11 @@ TODO_LIST_COMMANDS = {
     "^\\ *show\\ +todo\\ +list\\ *$": "show_todo_list",
     "^\\ *show\\ +todo\\ *$": "show_todo_list",
     "^\\ *todo\\ +list\\ *$": "show_todo_list",
+    "^\\ *todo\\ *$": "show_todo_list",
     "^\\ *add\\ +todo\\ (.*)$": "add_todo",
     "^\\ *delete\\ +todo\\ +([0-9]+)\\ *$": "delete_todo",
-    "^\\ *remove\\ +todo\\ +([0-9]+)\\ *$": "delete_todo"
+    "^\\ *remove\\ +todo\\ +([0-9]+)\\ *$": "delete_todo",
+    "^\\ *clear\\ +todo\\ +list\\ *$": "clear_todo_list",
 }
 
 class TODOListPlugin(BasePlugin):
@@ -43,49 +45,55 @@ class TODOListPlugin(BasePlugin):
         f.write(json.dumps(self._todos))
         f.close()
             
-    def process_highlight(self, source, target, msg):
+    def process_highlight(self, from_username, source, target, msg):
+        if not from_username:
+            return self.notice_response(source.split("!")[0], "You must be logged in to use the TODO list")
+            
         for regexp in self._commands:
             match_data = regexp.match(msg)
             if match_data:
-                return self._commands[regexp](*((source, target) + match_data.groups()))
+                return self._commands[regexp](*((from_username, source, target) + match_data.groups()))
     
-    def process_privmsg(self, source, target, msg):
-        return self.process_highlight(source, target, msg)
+    def process_privmsg(self, from_username, source, target, msg):
+        return self.process_highlight(from_username, source, target, msg)
     
-    def show_todo_list(self, source, target):
-        logging.info("TODOListPlugin:show_todo_list:" + source + ":" + target)
+    def show_todo_list(self, from_username, source, target):
+        logging.info("TODOListPlugin:show_todo_list:" + from_username + ":" + source + ":" + target)
         
         res = []
-        todos = self._todos.get(source, [])
-        for i in range(len(todos)):
-            res.append(self.notice_response(source.split("!")[0], "TODO #%d : %s" % (i + 1, todos[i])))
+        todos = self._todos.get(from_username, [])
+        if len(todos) > 0:
+            for i in range(len(todos)):
+                res.append(self.notice_response(source.split("!")[0], "TODO #%d : %s" % (i + 1, todos[i])))
+        else:
+            res = self.notice_response(source.split("!")[0], "Nothing in the TODO list")
         
         return res
     
-    def add_todo(self, source, target, todo_item):
-        logging.info("TODOListPlugin:add_todo:" + source + ":" + target + ":" + todo_item)
+    def add_todo(self, from_username, source, target, todo_item):
+        logging.info("TODOListPlugin:add_todo:" + from_username + ":" + source + ":" + target + ":" + todo_item)
         
-        self._todos.setdefault(source, []).append(todo_item)
+        self._todos.setdefault(from_username, []).append(todo_item)
         self._save_todos()
-        if target.startswith("#"):
-            resp_target = target
-        else:
-            resp_target = source.split("!")[0]
-        return self.privmsg_response(resp_target, "Item added to TODO list")
+        return self.notice_response(source.split("!")[0], "Item added to TODO list")
     
-    def delete_todo(self, source, target, todo_index):
-        logging.info("TODOListPlugin:delete_todo:" + source + ":" + target + ":" + todo_index)
-        
-        if target.startswith("#"):
-            resp_target = target
-        else:
-            resp_target = source.split("!")[0]
+    def delete_todo(self, from_username, source, target, todo_index):
+        logging.info("TODOListPlugin:delete_todo:" + from_username + ":" + source + ":" + target + ":" + todo_index)
         
         todo_index = int(todo_index) - 1
-        todos = self._todos.get(source, [])
+        todos = self._todos.get(from_username, [])
         if todo_index < len(todos):
             del todos[todo_index]
             self._save_todos()
-            return self.privmsg_response(resp_target, "TODO item deleted")
+            return self.notice_response(source.split("!")[0], "TODO item deleted")
         else:
-            return self.privmsg_response(resp_target, "TODO item not found")
+            return self.notice_response(source.split("!")[0], "TODO item not found")
+    
+    def clear_todo_list(self, from_username, source, target):
+        logging.info("TODOListPlugin:clear_todo_list:" + from_username + ":" + source + ":" + target)
+        
+        if from_username in self._todos:
+            del self._todos[from_username]
+            self._save_todos()
+        
+        return self.notice_response(source.split("!")[0], "TODO list cleared")
