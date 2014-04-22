@@ -16,7 +16,18 @@ TODO_LIST_COMMANDS = {
     "^\\ *delete\\ +todo\\ +([0-9]+)\\ *$": "delete_todo",
     "^\\ *remove\\ +todo\\ +([0-9]+)\\ *$": "delete_todo",
     "^\\ *clear\\ +todo\\ +list\\ *$": "clear_todo_list",
+    "^\\ *todo\\ +help\\ *$": "help",
 }
+
+TODO_HELP_TEXT = """To manage your TODO list, you can use the following commands :
+%nickname%, todo                            # shows your TODO list
+%nickname%, show todo                       # shows your TODO list
+%nickname%, show todo list                  # shows your TODO list
+%nickname%, todo list                       # shows your TODO list
+%nickname%, add todo <todo_item>            # adds an item to your TODO list
+%nickname%, remove todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
+%nickname%, delete todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
+%nickname%, clear todo list                 # clears your TODO list"""
 
 class TODOListPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
@@ -97,3 +108,9 @@ class TODOListPlugin(BasePlugin):
             self._save_todos()
         
         return self.notice_response(source.split("!")[0], "TODO list cleared")
+    
+    def help(self, from_username, source, target):
+        res = []
+        for line in TODO_HELP_TEXT.replace("%nickname%", self._bot._irc_server_connection.get_nickname()).splitlines():
+            res.append(self.notice_response(source.split("!")[0], line))
+        return res
