@@ -9,7 +9,7 @@ class SegfaultPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
         
-        bot._irc.execute_every(10, self._check_new_posts)
+        bot._irc.execute_every(300, self._check_new_posts)
         self._check_new_posts()
         
         self._known_posts = []
@@ -30,8 +30,7 @@ class SegfaultPlugin(BasePlugin):
         feed = feedparser.parse("http://segfault.linuxmint.com/feed/")
         for item in feed["items"]:
             if not self._has_run:
-                if item["id"] != "http://segfault.linuxmint.com/?p=482":
-                    self._known_posts.append(item["id"])
+                self._known_posts.append(item["id"])
             elif item["id"] not in self._known_posts:
                 self._known_posts.append(item["id"])
                 return self.privmsg_response(self._get_config("output_channel"), u"[\x0313Segfault\x0f] \x0314New post\x0f \x0315%s\x0f: %s \x0302\x1f%s\x0f" % (item["author"], item["title"], item["link"]))
