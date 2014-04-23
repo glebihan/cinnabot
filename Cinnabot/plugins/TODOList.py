@@ -12,22 +12,30 @@ TODO_LIST_COMMANDS = {
     "^\\ *show\\ +todo\\ *$": "show_todo_list",
     "^\\ *todo\\ +list\\ *$": "show_todo_list",
     "^\\ *todo\\ *$": "show_todo_list",
-    "^\\ *add\\ +todo\\ (.*)$": "add_todo",
+    "^\\ *add(\\ +(low|medium|high))?\\ +todo\\ (.*)$": "add_todo",
+    "^\\ *set\\ +todo\\ +priority\\ +([0-9]+)\\ +(low|medium|high)\\ *$": "set_todo_priority",
     "^\\ *delete\\ +todo\\ +([0-9]+)\\ *$": "delete_todo",
     "^\\ *remove\\ +todo\\ +([0-9]+)\\ *$": "delete_todo",
     "^\\ *clear\\ +todo\\ +list\\ *$": "clear_todo_list",
     "^\\ *todo\\ +help\\ *$": "help",
 }
 
+PRIORITY_COLORS = {
+    "high": u"\x02",
+    "medium": "",
+    "low": u"\x0314"
+}
+
 TODO_HELP_TEXT = """To manage your TODO list, you can use the following commands :
-/msg %nickname% todo                            # shows your TODO list
-/msg %nickname% show todo                       # shows your TODO list
-/msg %nickname% show todo list                  # shows your TODO list
-/msg %nickname% todo list                       # shows your TODO list
-/msg %nickname% add todo <todo_item>            # adds an item to your TODO list
-/msg %nickname% remove todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
-/msg %nickname% delete todo <todo_item_index>   # removes the item in position #todo_item_index from your list (index starts at 1)
-/msg %nickname% clear todo list                 # clears your TODO list"""
+/msg %nickname% todo                                                        # shows your TODO list
+/msg %nickname% show todo                                                   # shows your TODO list
+/msg %nickname% show todo list                                              # shows your TODO list
+/msg %nickname% todo list                                                   # shows your TODO list
+/msg %nickname% add [low|medium|high] todo <todo_item>                      # adds an item to your TODO list with an optional priority (defaults to medium)
+/msg %nickname% remove todo <todo_item_index>                               # removes the item in position #todo_item_index from your list (index starts at 1)
+/msg %nickname% delete todo <todo_item_index>                               # removes the item in position #todo_item_index from your list (index starts at 1)
+/msg %nickname% clear todo list                                             # clears your TODO list
+/msg %nickname% set todo priority <todo_item_index> low|medium|high         # updates the priority of an item in your TODO list"""
 
 class TODOListPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
@@ -47,6 +55,12 @@ class TODOListPlugin(BasePlugin):
                 f = open(filename, "r")
                 self._todos = json.loads(f.read())
                 f.close()
+                
+                # temporary patch to convert existing config
+                for username in self._todos:
+                    for i in range(len(self._todos[username])):
+                        if type(self._todos[username][i]) != dict:
+                            self._todos[username][i] = {"label": self._todos[username][i], "priority": "medium"}
             except:
                 pass
     
@@ -75,16 +89,19 @@ class TODOListPlugin(BasePlugin):
         todos = self._todos.get(from_username, [])
         if len(todos) > 0:
             for i in range(len(todos)):
-                res.append(self.notice_response(source.split("!")[0], "TODO #%d : %s" % (i + 1, todos[i])))
+                res.append(self.notice_response(source.split("!")[0], PRIORITY_COLORS[todos[i]["priority"]] + "TODO #%d (%s) : %s" % (i + 1, todos[i]["priority"], todos[i]["label"])))
         else:
             res = self.notice_response(source.split("!")[0], "Nothing in the TODO list")
         
         return res
     
-    def add_todo(self, from_username, source, target, todo_item):
+    def add_todo(self, from_username, source, target, ig, priority, todo_item):
         logging.info("TODOListPlugin:add_todo:" + from_username + ":" + source + ":" + target + ":" + todo_item)
         
-        self._todos.setdefault(from_username, []).append(todo_item)
+        if not priority:
+            priority = "medium"
+        
+        self._todos.setdefault(from_username, []).append({"label": todo_item, "priority": priority})
         self._save_todos()
         return self.notice_response(source.split("!")[0], "Item added to TODO list")
     
@@ -97,6 +114,18 @@ class TODOListPlugin(BasePlugin):
             del todos[todo_index]
             self._save_todos()
             return self.notice_response(source.split("!")[0], "TODO item deleted")
+        else:
+            return self.notice_response(source.split("!")[0], "TODO item not found")
+    
+    def set_todo_priority(self, from_username, source, target, todo_index, priority):
+        logging.info("TODOListPlugin:set_todo_priority:" + from_username + ":" + source + ":" + target + ":" + todo_index + ":" + priority)
+        
+        todo_index = int(todo_index) - 1
+        todos = self._todos.get(from_username, [])
+        if todo_index < len(todos):
+            todos[todo_index]["priority"] = priority
+            self._save_todos()
+            return self.notice_response(source.split("!")[0], "Priority updated")
         else:
             return self.notice_response(source.split("!")[0], "TODO item not found")
     
