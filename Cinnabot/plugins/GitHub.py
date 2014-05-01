@@ -84,7 +84,7 @@ class GitHubPlugin(BasePlugin):
             if words[i].lower() == "issue" and i < len(words) - 1:
                 next_word = words[i + 1];
                 try:
-                    if next_word[-1] in ",.;:":
+                    if next_word[-1] in ",.;:()":
                         next_word = next_word[:-1]
                     issue_number = int(next_word)
                     issues_numbers.append(issue_number)
@@ -92,7 +92,7 @@ class GitHubPlugin(BasePlugin):
                     pass
             elif words[i][0] == "#":
                 try:
-                    if words[i][-1] in ",.;:":
+                    if words[i][-1] in ",.;:()":
                         words[i] = words[i][:-1]
                     issue_number = int(words[i][1:])
                     issues_numbers.append(issue_number)
