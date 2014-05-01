@@ -80,21 +80,21 @@ class GitHubPlugin(BasePlugin):
             if package.lower() in words_lower or package.lower() in other_words:
                 packages_list.append(package)
         issues_numbers = []
-        for i in range(len(other_words)):
-            if other_words[i].lower() == "issue" and i < len(other_words) - 1:
-                next_word = other_words[i + 1];
+        for i in range(len(words)):
+            if words[i].lower() == "issue" and i < len(words) - 1:
+                next_word = words[i + 1];
                 try:
-                    if next_word[-1] in ",.;:":
+                    if next_word[-1] in ",.;:()":
                         next_word = next_word[:-1]
                     issue_number = int(next_word)
                     issues_numbers.append(issue_number)
                 except:
                     pass
-            elif other_words[i][0] == "#":
+            elif words[i][0] == "#":
                 try:
-                    if other_words[i][-1] in ",.;:":
-                        other_words[i] = other_words[i][:-1]
-                    issue_number = int(other_words[i][1:])
+                    if words[i][-1] in ",.;:()":
+                        words[i] = words[i][:-1]
+                    issue_number = int(words[i][1:])
                     issues_numbers.append(issue_number)
                 except:
                     pass
