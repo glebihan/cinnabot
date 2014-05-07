@@ -15,7 +15,8 @@ class PluginPrivmsgResponse(PluginResponse):
         self._msg = msg
     
     def process(self, irc, irc_server_connection):
-        irc_server_connection.privmsg(self._target, self._msg)
+        if len(self._msg) <= 200:
+            irc_server_connection.privmsg(self._target, self._msg)
 
 class PluginActionResponse(PluginResponse):
     def __init__(self, target, msg):
