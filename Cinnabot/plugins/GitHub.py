@@ -49,7 +49,10 @@ class GitHubPlugin(BasePlugin):
         try:
             #~ for i in commit_info:
                 #~ print i, commit_info[i]
-            return "[\x0313%s\x0f] \x0314Commit %s\x0f \x0315%s\x0f: %s" % (commit_info["html_url"].split("/")[-3], commit_info["sha"], commit_info["author"]["name"], commit_info["message"])
+            commit_message = commit_info["message"]
+            if len(commit_message) > 77:
+                commit_message = commit_message[:77] + "..."
+            return "[\x0313%s\x0f] \x0314Commit %s\x0f \x0315%s\x0f: %s" % (commit_info["html_url"].split("/")[-3], commit_info["sha"], commit_info["author"]["name"], commit_message)
         except:
             return None
             
