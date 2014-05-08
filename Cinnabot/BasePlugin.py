@@ -131,6 +131,12 @@ class BasePlugin(object):
         if hasattr(self, "process_channel_message"):
             self._start_task(self.process_channel_message, source, target, msg)
     
+    def handle_channel_join(self, source, target):
+        logging.info("plugin_handle_channel_join:" + self._plugin_name + ":" + source + ":" + target)
+        
+        if hasattr(self, "process_channel_join"):
+            self._start_task(self.process_channel_join, source, target)
+    
     def privmsg_response(self, target, msg):
         return PluginPrivmsgResponse(target, msg)
     

@@ -317,6 +317,16 @@ class Cinnabot(object):
                 del self._identify_user_queue[nickname][0]
                 callback(self._nick_to_username_map[nickname], *args)
     
+    def _on_irc_join(self, server_connection, event):
+        logging.info("_on_irc_join:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        if event.source.split("!")[0] == self._irc_server_connection.get_nickname():
+            return
+        
+        for plugin in self._plugins.values():
+            if event.target.startswith("#") and event.target in plugin.get_channels():
+                plugin.handle_channel_join(event.source, event.target)
+    
     def _connect(self):
         self._irc = irc.client.IRC()
         self._irc.add_global_handler("pubmsg", self._on_irc_pubmsg)
@@ -326,6 +336,7 @@ class Cinnabot(object):
         self._irc.add_global_handler("330", self._on_irc_user_login_info)
         self._irc.add_global_handler("endofwhois", self._on_irc_endofwhois)
         self._irc.add_global_handler("whoischannels", self._on_irc_whoischannels)
+        self._irc.add_global_handler("join", self._on_irc_join)
         self._irc_server_connection = self._irc.server()
         self._irc_server_connection.buffer_class.errors = 'replace'
         self._irc_server_connection.connect(
