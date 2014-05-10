@@ -41,7 +41,10 @@ class GitHubPlugin(BasePlugin):
         try:
             #~ for i in issue_info:
                 #~ print i, issue_info[i]
-            return u"[\x0313%s\x0f] \x0314%s #%d, %s\x0f \x0315%s\x0f: %s \x0302\x1f%s\x0f" % (issue_info["html_url"].split("/")[-3], ("Issue", "Pull request")[("pull_request" in issue_info) and ("url" in issue_info["pull_request"]) and (issue_info["pull_request"]["url"] != None)], issue_info["number"], issue_info["state"], issue_info["user"]["login"], issue_info["title"], issue_info["html_url"])
+            issue_title = issue_info["title"]
+            if len(issue_title) > 97:
+                issue_title = issue_title[:97] + "..."
+            return u"[\x0313%s\x0f] \x0314%s #%d, %s\x0f \x0315%s\x0f: %s \x0302\x1f%s\x0f" % (issue_info["html_url"].split("/")[-3], ("Issue", "Pull request")[("pull_request" in issue_info) and ("url" in issue_info["pull_request"]) and (issue_info["pull_request"]["url"] != None)], issue_info["number"], issue_info["state"], issue_info["user"]["login"], issue_title, issue_info["html_url"])
         except:
             return None
             
@@ -50,8 +53,8 @@ class GitHubPlugin(BasePlugin):
             #~ for i in commit_info:
                 #~ print i, commit_info[i]
             commit_message = commit_info["message"]
-            if len(commit_message) > 77:
-                commit_message = commit_message[:77] + "..."
+            if len(commit_message) > 97:
+                commit_message = commit_message[:97] + "..."
             return "[\x0313%s\x0f] \x0314Commit %s\x0f \x0315%s\x0f: %s" % (commit_info["html_url"].split("/")[-3], commit_info["sha"], commit_info["author"]["name"], commit_message)
         except:
             return None
