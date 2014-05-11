@@ -71,13 +71,13 @@ class TODOListPlugin(BasePlugin):
         f.close()
             
     def process_highlight(self, from_username, source, target, msg):
-        if not from_username:
-            return self.notice_response(source.split("!")[0], "You must be logged in to use the TODO list")
-            
         for regexp in self._commands:
             match_data = regexp.match(msg)
             if match_data:
-                return self._commands[regexp](*((from_username, source, target) + match_data.groups()))
+                if from_username:
+                    return self._commands[regexp](*((from_username, source, target) + match_data.groups()))
+                else:
+                    return self.notice_response(source.split("!")[0], "You must be logged in to use the TODO list")
     
     def process_privmsg(self, from_username, source, target, msg):
         return self.process_highlight(from_username, source, target, msg)
