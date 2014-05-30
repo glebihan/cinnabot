@@ -45,4 +45,4 @@ class CommunityRegistrationPlugin(BasePlugin):
                 
                 code = self._retrieve_code()
                 
-                return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ", see your private messages for registration code")]
+                return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ", see private message for registration code")]
