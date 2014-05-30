@@ -33,7 +33,7 @@ class CommunityRegistrationPlugin(BasePlugin):
         resp, content = http.request("http://community.linuxmint.com/user/moderators", "GET", headers = {'Cookie' : resp["set-cookie"]})
         
         search_str = "<input type=\"text\" name=\"passcode\" value=\""
-        i = content.index("<input type=\"text\" name=\"passcode\" value=\"")
+        i = content.index(search_str)
         return content[i+len(search_str):].split('"')[0]
         
     def process_channel_message(self, source, target, msg):
