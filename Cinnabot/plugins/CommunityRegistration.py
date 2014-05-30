@@ -39,7 +39,7 @@ class CommunityRegistrationPlugin(BasePlugin):
     def process_channel_message(self, source, target, msg):
         words = [w.replace("?", "").replace(".", "").replace("!", "").rstrip().lstrip().lower() for w in msg.split()]
         
-        if ("registration" in words and "code" in words) or ("community" in words and "code" in words) or ("registration" in words and "community" in words):
+        if ("registration" in words and "code" in words) or ("community" in words and "code" in words) or ("registration" in words and "community" in words) or ("reg code" in msg.lower()):
             if not source in self._users_with_code or ((time.time() - self._users_with_code[source]) > 10):
                 self._users_with_code[source] = time.time()
                 
