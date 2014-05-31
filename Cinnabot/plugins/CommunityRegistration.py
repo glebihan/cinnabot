@@ -45,4 +45,4 @@ class CommunityRegistrationPlugin(BasePlugin):
                 
                 code = self._retrieve_code()
                 
-                return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ": Hi. I sent you a registration code via PM (it looks like another tab beside #linuxmint-help). Welcome to Linux Mint ;)")]
+                return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ": Hi. I sent you a registration code via PM (check the tab with my name on it). Welcome to Linux Mint ;)")]
