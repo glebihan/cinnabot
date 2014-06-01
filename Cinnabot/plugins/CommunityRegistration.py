@@ -37,12 +37,22 @@ class CommunityRegistrationPlugin(BasePlugin):
         return content[i+len(search_str):].split('"')[0]
         
     def process_channel_message(self, source, target, msg):
-        words = [w.replace("?", "").replace(".", "").replace("!", "").rstrip().lstrip().lower() for w in msg.split()]
+        words = [w.replace("?", "").replace(".", "").rstrip().lstrip() for w in msg.split()]
+        words_lower = [w.replace("!", "").lower() for w in words]
         
-        if ("registration" in words and "code" in words) or ("community" in words and "code" in words) or ("registration" in words and "community" in words) or ("reg code" in msg.lower()):
+        if ("registration" in words_lower and "code" in words_lower) or ("community" in words_lower and "code" in words_lower) or ("registration" in words_lower and "community" in words_lower) or ("reg code" in msg.lower()):
             if not source in self._users_with_code or ((time.time() - self._users_with_code[source]) > 300):
                 self._users_with_code[source] = time.time()
                 
                 code = self._retrieve_code()
                 
                 return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ": Hi. I sent you a registration code via PM (check the tab with my name on it). Welcome to Linux Mint ;)")]
+        
+        if len(words) == 2 and words[0].lower() in ["!code", "!registration"]:
+            dest_nickname = words[1]
+            if not dest_nickname in self._users_with_code or ((time.time() - self._users_with_code[dest_nickname]) > 300):
+                self._users_with_code[dest_nickname] = time.time()
+                
+                code = self._retrieve_code()
+                
+                return [self.privmsg_response(dest_nickname, code), self.privmsg_response(target, dest_nickname + ": Hi. I sent you a registration code via PM (check the tab with my name on it). Welcome to Linux Mint ;)")]
