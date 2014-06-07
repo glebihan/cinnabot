@@ -37,8 +37,19 @@ class CommunityRegistrationPlugin(BasePlugin):
         return content[i+len(search_str):].split('"')[0]
         
     def process_channel_message(self, source, target, msg):
-        words = [w.replace("?", "").replace(".", "").rstrip().lstrip() for w in msg.split()]
-        words_lower = [w.replace("!", "").lower() for w in words]
+        words = msg.split()
+
+        current_word = ""
+        words_lower = []
+        for i in msg.lower():
+            if i in ",;:?.! ()":
+                if current_word != "":
+                    words_lower.append(current_word)
+                    current_word = ""
+            else:
+                current_word += i
+        if current_word != "":
+            words_lower.append(current_word)
         
         if ("registration" in words_lower and "code" in words_lower) or ("community" in words_lower and "code" in words_lower) or ("registration" in words_lower and "community" in words_lower) or ("reg code" in msg.lower()) or ("reg. code" in msg.lower()):
             if not source in self._users_with_code or ((time.time() - self._users_with_code[source]) > 300):
