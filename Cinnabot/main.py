@@ -205,7 +205,7 @@ class Cinnabot(object):
         self._irc.disconnect_all()
         os.kill(os.getpid(), 9)
     
-    def _admin_restart(self, source, target):
+    def _admin_restart(self, source = None, target = None):
         logging.info("_admin_restart")
         
         self._irc.disconnect_all()
@@ -347,6 +347,13 @@ class Cinnabot(object):
             password = self.config.get("General", "password")
         )
         self._irc.execute_every(0.1, self._check_plugin_tasks)
+        self._irc.execute_every(60, self._check_connection)
+    
+    def _check_connection(self):
+        logging.info("_check_connection")
+
+        if not self._irc_server_connection.is_connected():
+            self._admin_restart()
     
     def _check_plugin_tasks(self):
         for plugin in self._plugins.values():
