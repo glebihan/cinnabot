@@ -80,7 +80,7 @@ class GitHubPlugin(BasePlugin):
         issues_url_words = [word for word in words if word.startswith("https://github.com/") and ("/issues/" in word or "/pull/" in word)]
         issues_urls = []
         for url in issues_url_words:
-            issues_urls.append(url.replace("https://github.com/", "https://api.github.com/repos/").replace("/pull/", "/issues/") + "?access_token=" + self._get_config("github_access_token"))
+            issues_urls.append(url.replace("https://github.com/", "https://api.github.com/repos/").replace("/pull/", "/pulls/") + "?access_token=" + self._get_config("github_access_token"))
         packages_list = []
         for package in self._packages_list:
             if package.lower() in words_lower or package.lower() in other_words:
