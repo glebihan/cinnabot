@@ -116,6 +116,10 @@ class GitHubPlugin(BasePlugin):
             issue_info = self._retrieve_github_info(url)
             if issue_info:
                 output_message = self._format_issue_info(issue_info)
+                if not output_message and "/issues/" in url:
+                    issue_info = self._retrieve_github_info(url.replace("/issues/", "/pulls/"))
+                    if issue_info:
+                        output_message = self._format_issue_info(issue_info)
                 if output_message:
                     return self.privmsg_response(target, output_message)
         commits_url_words = [word for word in words if word.startswith("https://github.com/") and "/commit/" in word]
