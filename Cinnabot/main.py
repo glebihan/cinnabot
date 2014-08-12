@@ -348,6 +348,14 @@ class Cinnabot(object):
         )
         self._irc.execute_every(0.1, self._check_plugin_tasks)
         self._irc.execute_every(60, self._check_connection)
+        self._irc.execute_every(60, self._check_nickname)
+    
+    def _check_nickname(self):
+        logging.info("_check_nickname")
+        
+        if self._irc_server_connection.get_nickname() != self.config.get("General", "nickname"):
+            self._on_irc_welcome(None, None)
+            self._irc_server_connection.nick(self.config.get("General", "nickname"))
     
     def _check_connection(self):
         logging.info("_check_connection")
