@@ -57,7 +57,7 @@ class CommunityRegistrationPlugin(BasePlugin):
                 
                 code = self._retrieve_code()
                 
-                return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ": Hi. I sent you a registration code via PM (check the tab with my name on it). Welcome to Linux Mint ;)")]
+                return [self.privmsg_response(source.split("!")[0], code), self.privmsg_response(target, source.split("!")[0] + ": Hi. I sent you a registration code via private message (check the tab with my name on it). Welcome to Linux Mint ;)")]
         
         if len(words) == 2 and words[0].lower() in ["!code", "!registration"]:
             dest_nickname = words[1]
