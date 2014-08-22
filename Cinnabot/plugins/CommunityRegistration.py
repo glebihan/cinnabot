@@ -66,4 +66,4 @@ class CommunityRegistrationPlugin(BasePlugin):
                 
                 code = self._retrieve_code()
                 
-                return [self.privmsg_response(dest_nickname, code), self.privmsg_response(target, dest_nickname + ": Hi. I sent you a registration code via PM (check the tab with my name on it). Welcome to Linux Mint ;)")]
+                return [self.privmsg_response(dest_nickname, code), self.privmsg_response(target, dest_nickname + ": Hi. I sent you a registration code via private message (check the tab with my name on it). Welcome to Linux Mint ;)")]
