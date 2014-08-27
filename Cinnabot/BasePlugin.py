@@ -46,13 +46,13 @@ class TimedQuietResponse(PluginResponse):
         mute_mask = "*!*@%s" % self._user.split("@")[1]
         if not mute_mask in MUTED_MASKS:
             MUTED_MASKS.append(mute_mask)
-            irc_server_connection.mode(self._channel, "+b m:%s" % (self._channel, mute_mask))
+            irc_server_connection.mode(self._channel, "+b m:%s" % mute_mask)
             irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection, mute_mask))
     
     def _unprocess(self, irc, irc_server_connection, mute_mask):
         while mute_mask in MUTED_MASKS:
             del MUTED_MASKS[MUTED_MASKS.index(mute_mask)]
-        irc_server_connection.mode(self._channel, "-b m:%s" % (self._channel, mute_mask))
+        irc_server_connection.mode(self._channel, "-b m:%s" % mute_mask)
         irc_server_connection.privmsg("ChanServ", "unquiet %s %s" % (self._channel, mute_mask))
 
 class PluginTask(object):
