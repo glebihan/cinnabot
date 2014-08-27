@@ -41,11 +41,11 @@ class TimedQuietResponse(PluginResponse):
         self._quiet_time = quiet_time
     
     def process(self, irc, irc_server_connection):
-        irc_server_connection.privmsg("ChanServ", "quiet %s *!*@%s" % (self._channel, self._user.split("@")[1]))
+        irc_server_connection.privmsg("ChanServ", "quiet %s %s!*@%" % (self._channel, self._user.split("!")[0]))
         irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection))
     
     def _unprocess(self, irc, irc_server_connection):
-        irc_server_connection.privmsg("ChanServ", "unquiet %s *!*@%s" % (self._channel, self._user.split("@")[1]))
+        irc_server_connection.privmsg("ChanServ", "unquiet %s %s!*@%" % (self._channel, self._user.split("!")[0]))
 
 class PluginTask(object):
     def __init__(self, task_id, callback, method, *args):
