@@ -34,6 +34,19 @@ class PluginNoticeResponse(PluginResponse):
     def process(self, irc, irc_server_connection):
         irc_server_connection.notice(self._target, self._msg)
 
+class TimedQuietResponse(PluginResponse):
+    def __init__(self, channel, user, quiet_time):
+        self._channel = channel
+        self._user = user
+        self._quiet_time = quiet_time
+    
+    def process(self, irc, irc_server_connection):
+        irc_server_connection.privmsg("ChanServ", "quiet %s *!*@%s" % (self._channel, self._user.split("@")[1]))
+        irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection))
+    
+    def _unprocess(self, irc, irc_server_connection):
+        irc_server_connection.privmsg("ChanServ", "unquiet %s *!*@%s" % (self._channel, self._user.split("@")[1]))
+
 class PluginTask(object):
     def __init__(self, task_id, callback, method, *args):
         self._task_id = task_id
@@ -145,6 +158,9 @@ class BasePlugin(object):
         
     def notice_response(self, target, msg):
         return PluginNoticeResponse(target, msg)
+    
+    def timed_quiet_response(self, channel, user, quiet_time):
+        return TimedQuietResponse(channel, user, quiet_time)
     
     def process_tasks(self):
         for task_id in self._tasks.keys():
