@@ -45,15 +45,15 @@ class TimedQuietResponse(PluginResponse):
     def process(self, irc, irc_server_connection):
         mute_host = self._user.split("@")[1]
         mute_mask = "*!*@%s" % mute_host
-        if not mute_host in self._plugin.muted_hosts:
-            self._plugin.muted_hosts.append(mute_host)
+        if not mute_host in self._plugin.muted_hosts.setdefault(self._channel, []):
+            self._plugin.muted_hosts.setdefault(self._channel, []).append(mute_host)
             if not self._debug_mode:
                 irc_server_connection.mode(self._channel, "+b m:%s" % mute_mask)
             irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection, mute_host, mute_mask))
     
     def _unprocess(self, irc, irc_server_connection, mute_host, mute_mask):
-        while mute_host in self._plugin.muted_hosts:
-            del self._plugin.muted_hosts[self._plugin.muted_hosts.index(mute_host)]
+        while mute_host in self._plugin.muted_hosts.setdefault(self._channel, []):
+            del self._plugin.muted_hosts[self._channel][self._plugin.muted_hosts[self._channel].index(mute_host)]
         if not self._debug_mode:
             irc_server_connection.mode(self._channel, "-b m:%s" % mute_mask)
 
@@ -96,7 +96,7 @@ class BasePlugin(object):
         self._plugin_name = plugin_name
         self._task_id = 0
         self._tasks = {}
-        self.muted_hosts = []
+        self.muted_hosts = {}
     
     def unload(self):
         pass

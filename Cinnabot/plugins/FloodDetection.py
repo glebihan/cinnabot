@@ -19,16 +19,16 @@ class FloodDetectionPlugin(BasePlugin):
         return self.process_channel_message(source, target, msg)
         
     def process_channel_message(self, source, target, msg):
-        if source.split("@")[1] in self.muted_hosts:
+        if source.split("@")[1] in self.muted_hosts.setdefault(target, []):
             return
                     
         resp = []
-        self._messages_by_source.setdefault(source, []).append(time.time())
-        self._messages_by_source2.setdefault(source, []).append(time.time())
-        self._messages_by_source[source] = self._messages_by_source[source][-int(self._get_config("nb_messages")):]
-        self._messages_by_source2[source] = self._messages_by_source2[source][-int(self._get_config("nb_messages2")):]
+        self._messages_by_source.setdefault(target, {}).setdefault(source, []).append(time.time())
+        self._messages_by_source2.setdefault(target, {}).setdefault(source, []).append(time.time())
+        self._messages_by_source[target][source] = self._messages_by_source[target][source][-int(self._get_config("nb_messages")):]
+        self._messages_by_source2[target][source] = self._messages_by_source2[target][source][-int(self._get_config("nb_messages2")):]
         
-        if (len(self._messages_by_source[source]) == int(self._get_config("nb_messages")) and time.time() - min(self._messages_by_source[source]) < int(self._get_config("interval"))) or (len(self._messages_by_source2[source]) == int(self._get_config("nb_messages2")) and time.time() - min(self._messages_by_source2[source]) < int(self._get_config("interval2"))):
+        if (len(self._messages_by_source[target][source]) == int(self._get_config("nb_messages")) and time.time() - min(self._messages_by_source[target][source]) < int(self._get_config("interval"))) or (len(self._messages_by_source2[target][source]) == int(self._get_config("nb_messages2")) and time.time() - min(self._messages_by_source2[target][source]) < int(self._get_config("interval2"))):
             if time.time() - self._last_sent_warning.setdefault(source, 0) > 600:
                 if self._get_config("debug_mode") != "true":
                     resp.append(self.privmsg_response(target, "%s, Please don't paste in here when there's more than 3 lines. Use http://dpaste.com/ instead. Thank you !" % source.split("!")[0]))
