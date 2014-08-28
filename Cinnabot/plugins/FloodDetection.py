@@ -11,6 +11,12 @@ class FloodDetectionPlugin(BasePlugin):
         self._messages_by_source2 = {}
         self._last_sent_warning = {}
         
+    def process_channel_pubnotice(self, source, target, msg):
+        return self.process_channel_message(source, target, msg)
+        
+    def process_channel_action(self, source, target, msg):
+        return self.process_channel_message(source, target, msg)
+        
     def process_channel_message(self, source, target, msg):
         resp = []
         self._messages_by_source.setdefault(source, []).append(time.time())

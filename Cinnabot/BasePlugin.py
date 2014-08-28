@@ -151,6 +151,18 @@ class BasePlugin(object):
         
         if hasattr(self, "process_channel_message"):
             self._start_task(self.process_channel_message, source, target, msg)
+            
+    def handle_channel_action(self, source, target, msg):
+        logging.info("plugin_handle_channel_action:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)
+        
+        if hasattr(self, "process_channel_action"):
+            self._start_task(self.process_channel_action, source, target, msg)
+    
+    def handle_channel_pubnotice(self, source, target, msg):
+        logging.info("plugin_handle_channel_pubnotice:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)
+        
+        if hasattr(self, "process_channel_pubnotice"):
+            self._start_task(self.process_channel_pubnotice, source, target, msg)
     
     def handle_channel_join(self, source, target):
         logging.info("plugin_handle_channel_join:" + self._plugin_name + ":" + source + ":" + target)

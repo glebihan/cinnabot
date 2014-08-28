@@ -286,6 +286,34 @@ class Cinnabot(object):
                 if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
                     plugin.handle_channel_message(event.source, event.target, event.arguments[0])
     
+    def _on_irc_action(self, server_connection, event):
+        logging.info("_on_irc_action:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        self._identify_user(event.source, self._process_irc_action, event)
+    
+    def _process_irc_action(self, from_username, event):
+        logging.info("_process_irc_action:" + from_username + ":" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        from_admin = self._is_admin(from_username)
+        for plugin in self._plugins.values():
+            if event.target.startswith("#") and event.target in plugin.get_channels():
+                if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
+                    plugin.handle_channel_action(event.source, event.target, event.arguments[0])
+    
+    def _on_irc_pubnotice(self, server_connection, event):
+        logging.info("_on_irc_pubnotice:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        self._identify_user(event.source, self._process_irc_pubnotice, event)
+    
+    def _process_irc_pubnotice(self, from_username, event):
+        logging.info("_process_irc_pubnotice:" + from_username + ":" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        from_admin = self._is_admin(from_username)
+        for plugin in self._plugins.values():
+            if event.target.startswith("#") and event.target in plugin.get_channels():
+                if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
+                    plugin.handle_channel_pubnotice(event.source, event.target, event.arguments[0])
+    
     def _on_irc_privmsg(self, server_connection, event):
         logging.info("_on_irc_privmsg:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
         
@@ -331,6 +359,8 @@ class Cinnabot(object):
         self._irc = irc.client.IRC()
         self._irc.add_global_handler("pubmsg", self._on_irc_pubmsg)
         self._irc.add_global_handler("privmsg", self._on_irc_privmsg)
+        self._irc.add_global_handler("action", self._on_irc_action)
+        self._irc.add_global_handler("pubnotice", self._on_irc_pubnotice)
         self._irc.add_global_handler("welcome", self._on_irc_welcome)
         self._irc.add_global_handler("900", self._on_irc_login)
         self._irc.add_global_handler("330", self._on_irc_user_login_info)
