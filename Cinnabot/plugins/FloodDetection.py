@@ -10,6 +10,7 @@ class FloodDetectionPlugin(BasePlugin):
         self._messages_by_source = {}
         self._messages_by_source2 = {}
         self._last_sent_warning = {}
+        self._quiet_times = {}
         
     def process_channel_pubnotice(self, source, target, msg):
         return self.process_channel_message(source, target, msg)
@@ -18,6 +19,9 @@ class FloodDetectionPlugin(BasePlugin):
         return self.process_channel_message(source, target, msg)
         
     def process_channel_message(self, source, target, msg):
+        if source.split("@")[1] in self.muted_hosts:
+            return
+            
         resp = []
         self._messages_by_source.setdefault(source, []).append(time.time())
         self._messages_by_source2.setdefault(source, []).append(time.time())
@@ -28,6 +32,11 @@ class FloodDetectionPlugin(BasePlugin):
             if time.time() - self._last_sent_warning.setdefault(source, 0) > 600:
                 resp.append(self.privmsg_response(target, "%s, Please don't paste in here when there's more than 3 lines. Use http://dpaste.com/ instead. Thank you !" % source.split("!")[0]))
                 self._last_sent_warning[source] = time.time()
-            resp.append(self.timed_quiet_response(target, source, int(self._get_config("quiet_time"))))
+            if not source in self._quiet_times:
+                self._quiet_times[source] = int(self._get_config("quiet_time"))
+            else:
+                self._quiet_times[source] = 2 * self._quiet_times[source]
+                resp.append(self.wallchop_response(target, "[@%s] Flood from user %s in %s" % (target, source.split("!")[0], target)))
+            resp.append(self.timed_quiet_response(target, source, self._quiet_times[source]))
         
         return resp

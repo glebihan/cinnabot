@@ -6,8 +6,6 @@ import threading
 import sys
 import re
 
-MUTED_MASKS = []
-
 class PluginResponse(object):
     pass
 
@@ -37,21 +35,23 @@ class PluginNoticeResponse(PluginResponse):
         irc_server_connection.notice(self._target, self._msg)
 
 class TimedQuietResponse(PluginResponse):
-    def __init__(self, channel, user, quiet_time):
+    def __init__(self, plugin, channel, user, quiet_time):
+        self._plugin = plugin
         self._channel = channel
         self._user = user
         self._quiet_time = quiet_time
     
     def process(self, irc, irc_server_connection):
-        mute_mask = "*!*@%s" % self._user.split("@")[1]
-        if not mute_mask in MUTED_MASKS:
-            MUTED_MASKS.append(mute_mask)
+        mute_host = self._user.split("@")[1]
+        mute_mask = "*!*@%s" % mute_host
+        if not mute_host in self._plugin.muted_hosts:
+            self._plugin.muted_hosts.append(mute_host)
             irc_server_connection.mode(self._channel, "+b m:%s" % mute_mask)
-            irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection, mute_mask))
+            irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection, mute_host, mute_mask))
     
-    def _unprocess(self, irc, irc_server_connection, mute_mask):
-        while mute_mask in MUTED_MASKS:
-            del MUTED_MASKS[MUTED_MASKS.index(mute_mask)]
+    def _unprocess(self, irc, irc_server_connection, mute_host, mute_mask):
+        while mute_host in self._plugin.muted_hosts:
+            del self._plugin.muted_hosts[self._plugin.muted_hosts.index(mute_host)]
         irc_server_connection.mode(self._channel, "-b m:%s" % mute_mask)
         irc_server_connection.privmsg("ChanServ", "unquiet %s %s" % (self._channel, mute_mask))
 
@@ -94,6 +94,7 @@ class BasePlugin(object):
         self._plugin_name = plugin_name
         self._task_id = 0
         self._tasks = {}
+        self.muted_hosts = []
     
     def unload(self):
         pass
@@ -178,9 +179,13 @@ class BasePlugin(object):
         
     def notice_response(self, target, msg):
         return PluginNoticeResponse(target, msg)
+        
+    def wallchop_response(self, target, msg):
+        if len(self._bot._operators.setdefault(target, [])) > 0:
+            return PluginNoticeResponse(",".join(self._bot._operators.setdefault(target, [])), msg)
     
     def timed_quiet_response(self, channel, user, quiet_time):
-        return TimedQuietResponse(channel, user, quiet_time)
+        return TimedQuietResponse(self, channel, user, quiet_time)
     
     def process_tasks(self):
         for task_id in self._tasks.keys():
