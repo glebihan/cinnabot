@@ -35,25 +35,27 @@ class PluginNoticeResponse(PluginResponse):
         irc_server_connection.notice(self._target, self._msg)
 
 class TimedQuietResponse(PluginResponse):
-    def __init__(self, plugin, channel, user, quiet_time):
+    def __init__(self, plugin, channel, user, quiet_time, debug_mode):
         self._plugin = plugin
         self._channel = channel
         self._user = user
         self._quiet_time = quiet_time
+        self._debug_mode = debug_mode
     
     def process(self, irc, irc_server_connection):
         mute_host = self._user.split("@")[1]
         mute_mask = "*!*@%s" % mute_host
         if not mute_host in self._plugin.muted_hosts:
             self._plugin.muted_hosts.append(mute_host)
-            irc_server_connection.mode(self._channel, "+b m:%s" % mute_mask)
+            if not self._debug_mode:
+                irc_server_connection.mode(self._channel, "+b m:%s" % mute_mask)
             irc.execute_delayed(self._quiet_time, self._unprocess, (irc, irc_server_connection, mute_host, mute_mask))
     
     def _unprocess(self, irc, irc_server_connection, mute_host, mute_mask):
         while mute_host in self._plugin.muted_hosts:
             del self._plugin.muted_hosts[self._plugin.muted_hosts.index(mute_host)]
-        irc_server_connection.mode(self._channel, "-b m:%s" % mute_mask)
-        irc_server_connection.privmsg("ChanServ", "unquiet %s %s" % (self._channel, mute_mask))
+        if not self._debug_mode:
+            irc_server_connection.mode(self._channel, "-b m:%s" % mute_mask)
 
 class PluginTask(object):
     def __init__(self, task_id, callback, method, *args):
@@ -184,8 +186,8 @@ class BasePlugin(object):
         if len(self._bot._operators.setdefault(target, [])) > 0:
             return PluginNoticeResponse(",".join(self._bot._operators.setdefault(target, [])), msg)
     
-    def timed_quiet_response(self, channel, user, quiet_time):
-        return TimedQuietResponse(self, channel, user, quiet_time)
+    def timed_quiet_response(self, channel, user, quiet_time, debug_mode):
+        return TimedQuietResponse(self, channel, user, quiet_time, debug_mode)
     
     def process_tasks(self):
         for task_id in self._tasks.keys():
