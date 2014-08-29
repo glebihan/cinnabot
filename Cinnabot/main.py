@@ -34,8 +34,6 @@ ADMIN_COMMANDS_RE = {
 }
 
 SEMI_ADMIN_COMMANDS_RE = {
-    "^\\ *quit\\ *$": "quit",
-    "^\\ *restart\\ *$": "restart",
     "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
 }
 
