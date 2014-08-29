@@ -33,6 +33,12 @@ ADMIN_COMMANDS_RE = {
     "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
 }
 
+SEMI_ADMIN_COMMANDS_RE = {
+    "^\\ *quit\\ *$": "quit",
+    "^\\ *restart\\ *$": "restart",
+    "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
+}
+
 class CustomLogHandler(logging.StreamHandler):
     def __init__(self, bot):
         logging.StreamHandler.__init__(self)
@@ -57,6 +63,9 @@ class Cinnabot(object):
         self._admin_commands = {}
         for regexp in ADMIN_COMMANDS_RE:
             self._admin_commands[re.compile(regexp)] = getattr(self, "_admin_" + ADMIN_COMMANDS_RE[regexp])
+        self._semi_admin_commands = {}
+        for regexp in SEMI_ADMIN_COMMANDS_RE:
+            self._semi_admin_commands[re.compile(regexp)] = getattr(self, "_admin_" + SEMI_ADMIN_COMMANDS_RE[regexp])
         
         self._is_saving_channels = False
         
@@ -163,6 +172,16 @@ class Cinnabot(object):
     def _is_admin(self, username):
         return username != "" and username in self._admin_usernames
     
+    def _is_semi_admin(self, source):
+        if self.config.has_option("Admin", "semi_admin_hostmask_re"):
+            regexp = re.compile(self.config.get("Admin", "semi_admin_hostmask_re"))
+            if regexp.match(source):
+                return True
+            else:
+                return False
+        else:
+            return False
+    
     def _identify_user(self, source, callback, *args):
         nickname = source.split("!")[0]
         if not nickname in self._nick_to_mask_map or self._nick_to_mask_map[nickname] != source:
@@ -189,10 +208,14 @@ class Cinnabot(object):
         logging.info("_do_handle_message:" + from_username + ":" + source + ":" + target + ":" + msg)
         
         from_admin = self._is_admin(from_username)
-        
         if from_admin:
             if self._try_admin_command(source, target, msg):
                 return
+        else:
+            from_semi_admin = self._is_semi_admin(source)
+            if from_semi_admin:
+                if self._try_semi_admin_command(source, target, msg):
+                    return
         
         for plugin in self._plugins.values():
             if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
@@ -264,6 +287,17 @@ class Cinnabot(object):
             match_data = regexp.match(command)
             if match_data:
                 self._admin_commands[regexp](*((source, target) + match_data.groups()))
+                return True
+        
+        return False
+    
+    def _try_semi_admin_command(self, source, target, command):
+        logging.info("_try_semi_admin_command:" + source + ":" + target + ":" + command)
+                
+        for regexp in self._semi_admin_commands:
+            match_data = regexp.match(command)
+            if match_data:
+                self._semi_admin_commands[regexp](*((source, target) + match_data.groups()))
                 return True
         
         return False
@@ -374,8 +408,6 @@ class Cinnabot(object):
         channel, username, ident, server, nickname, flags, realname = event.arguments
         if flags in ["H@", "H~"] and nickname != "ChanServ":
             self._operators.setdefault(channel, []).append(nickname)
-        
-        print self._operators
     
     def _connect(self):
         self._irc = irc.client.IRC()
