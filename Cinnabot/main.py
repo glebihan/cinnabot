@@ -33,10 +33,6 @@ ADMIN_COMMANDS_RE = {
     "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
 }
 
-SEMI_ADMIN_COMMANDS_RE = {
-    "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
-}
-
 class CustomLogHandler(logging.StreamHandler):
     def __init__(self, bot):
         logging.StreamHandler.__init__(self)
@@ -59,11 +55,11 @@ class Cinnabot(object):
         self._init_logger()
         
         self._admin_commands = {}
+        self._semi_admin_commands = {}
         for regexp in ADMIN_COMMANDS_RE:
             self._admin_commands[re.compile(regexp)] = getattr(self, "_admin_" + ADMIN_COMMANDS_RE[regexp])
-        self._semi_admin_commands = {}
-        for regexp in SEMI_ADMIN_COMMANDS_RE:
-            self._semi_admin_commands[re.compile(regexp)] = getattr(self, "_admin_" + SEMI_ADMIN_COMMANDS_RE[regexp])
+            if ADMIN_COMMANDS_RE[regexp] in self._allowed_semi_admin_commands:
+                self._semi_admin_commands[re.compile(regexp)] = self._admin_commands[re.compile(regexp)]
         
         self._is_saving_channels = False
         
@@ -102,6 +98,11 @@ class Cinnabot(object):
         for key in self.config.options("Admin"):
             if key.startswith("admin_username"):
                 self._admin_usernames.append(self.config.get("Admin", key))
+        
+        if self.config.has_option("Admin", "allowed_semi_admin_commands"):
+            self._allowed_semi_admin_commands = self.config.get("Admin", "allowed_semi_admin_commands").split(",")
+        else:
+            self._allowed_semi_admin_commands = []
     
     def send_warn_privmsg(self, msg):
         if self.config.has_option("General", "send_log_to"):
@@ -171,13 +172,16 @@ class Cinnabot(object):
         return username != "" and username in self._admin_usernames
     
     def _is_semi_admin(self, source):
+        if not self.config.has_option("Admin", "semi_admin_channel_ops"):
+            return False
+            
         nickname = source.split("!")[0]
         
         if not nickname in self._nick_to_username_map:
             return False
         
-        for c in self._operators:
-            if nickname in self._operators[c]:
+        for c in self.config.get("Admin", "semi_admin_channel_ops").split(","):
+            if nickname in self._operators.setdefault(c, []):
                 return True
 
         return False
