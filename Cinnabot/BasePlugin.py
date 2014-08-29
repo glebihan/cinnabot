@@ -204,3 +204,10 @@ class BasePlugin(object):
                 elif task.result != None:
                     logging.warn("Incorrect plugin response : " + str(task.result))
                 del self._tasks[task_id]
+    
+    def clear_mutes(self, channel, mute_mask):
+        logging.info("plugin_clear_mutes:" + self._plugin_name + ":" + channel + ":" + mute_mask)
+        
+        mute_host = mute_mask.split("@")[1]
+        while mute_host in self.muted_hosts.setdefault(channel, []):
+            del self.muted_hosts[channel][self.muted_hosts[channel].index(mute_host)]
