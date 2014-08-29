@@ -360,10 +360,13 @@ class Cinnabot(object):
     def _on_irc_mode(self, server_connection, event):
         logging.info("_on_irc_mode:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
         
-        mode, mode_target = event.arguments
-        if mode == u"-b":
-            for plugin in self._plugins.values():
-                plugin.clear_mutes(event.target, mode_target)
+        try:
+            mode, mode_target = event.arguments
+            if mode == u"-b":
+                for plugin in self._plugins.values():
+                    plugin.clear_mutes(event.target, mode_target)
+        except:
+            pass
         
     def _on_irc_whoreply(self, server_connection, event):
         logging.info("_on_irc_whoreply:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
