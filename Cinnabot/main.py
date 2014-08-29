@@ -171,14 +171,16 @@ class Cinnabot(object):
         return username != "" and username in self._admin_usernames
     
     def _is_semi_admin(self, source):
-        if self.config.has_option("Admin", "semi_admin_hostmask_re"):
-            regexp = re.compile(self.config.get("Admin", "semi_admin_hostmask_re"))
-            if regexp.match(source):
-                return True
-            else:
-                return False
-        else:
+        nickname = source.split("!")[0]
+        
+        if not nickname in self._nick_to_username_map:
             return False
+        
+        for c in self._operators:
+            if nickname in self._operators[c]:
+                return True
+
+        return False
     
     def _identify_user(self, source, callback, *args):
         nickname = source.split("!")[0]
