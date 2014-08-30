@@ -183,8 +183,12 @@ class BasePlugin(object):
         return PluginNoticeResponse(target, msg)
         
     def wallchop_response(self, target, msg):
-        if len(self._bot._operators.setdefault(target, [])) > 0:
-            return PluginNoticeResponse(",".join(self._bot._operators.setdefault(target, [])), msg)
+        if self._has_config("always_wallchop_users"):
+            dests = self._get_config("always_wallchop_users").split(",") + self._bot._operators.setdefault(target, [])
+        else:
+            dests = self._bot._operators.setdefault(target, [])
+        if len(dests) > 0:
+            return PluginNoticeResponse(",".join(dests), msg)
     
     def timed_quiet_response(self, channel, user, quiet_time, debug_mode):
         return TimedQuietResponse(self, channel, user, quiet_time, debug_mode)

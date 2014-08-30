@@ -36,10 +36,10 @@ class FloodDetectionPlugin(BasePlugin):
             if not source in self._quiet_times:
                 self._quiet_times[source] = int(self._get_config("quiet_time"))
                 if self._get_config("debug_mode") == "true":
-                    resp.append(self.wallchop_response(target, "[@%s] Flood from user %s in %s" % (target, source.split("!")[0], target)))
+                    resp.append(self.wallchop_response(target, "[@%s] [FLOODALERT] Flood from user %s in %s" % (target, source.split("!")[0], target)))
             else:
                 self._quiet_times[source] = 2 * self._quiet_times[source]
-                resp.append(self.wallchop_response(target, "[@%s] Flood from user %s in %s" % (target, source.split("!")[0], target)))
+                resp.append(self.wallchop_response(target, "[@%s] [FLOODALERT] Flood from user %s in %s" % (target, source.split("!")[0], target)))
             resp.append(self.timed_quiet_response(target, source, self._quiet_times[source], self._get_config("debug_mode") == "true"))
         
         return resp
