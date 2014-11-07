@@ -18,19 +18,31 @@ class UpstreamReleasesPlugin(BasePlugin):
     def _check_releases(self):
         self._start_task(self._do_check_releases, "firefox")
         self._start_task(self._do_check_releases, "thunderbird")
+        self._start_task(self._do_check_releases, "virtualbox")
     
     def _do_check_releases(self, package):
         try:
             version_list = []
             c = httplib2.Http()
-            if package == "firefox":
+            if package == "virtualbox":
+                resp, content = c.request("http://download.virtualbox.org/virtualbox/")
+                split_string = "<A"
+                ignore_lines_start = 0
+            elif package == "firefox":
                 resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/firefox/releases/")
+                split_string = "<tr"
+                ignore_lines_start = 4
             else:
                 resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/")
-            for release in content.split("<tr")[4:]:
+                split_string = "<tr"
+                ignore_lines_start = 4
+            for release in content.split(split_string)[ignore_lines_start:]:
                 try:
-                    version = release.split("<a href=\"")[1].split("/\"")[0]
-                    if version[0] in "0123456789" and not "b" in version:
+                    if package == "virtualbox":
+                        version = release.split("HREF=\"")[1].split("/\"")[0]
+                    else:
+                        version = release.split("<a href=\"")[1].split("/\"")[0]
+                    if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version:
                         version_list.append(version)
                 except:
                     pass
