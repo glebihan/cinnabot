@@ -5,11 +5,28 @@ from Cinnabot.BasePlugin import BasePlugin
 import time
 import urllib
 import httplib2
+import random
 
 class CommunityRegistrationPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
         self._users_with_code = {}
+        
+        try:
+            bot._irc.execute_every(int(self._get_config("change_code_delay")) * 3600, self._change_code)
+        except:
+            pass
+    
+    def _change_code(self):
+        self._start_task(self._do_change_code)
+    
+    def _do_change_code(self):
+        new_code = '-'.join([''.join(random.sample('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 4)) for i in range(4)])
+        http = httplib2.Http()
+        data = urllib.urlencode({'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'})
+        resp, content = http.request("http://community.linuxmint.com/auth/login", "POST", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, body = data)
+        data = urllib.urlencode({'search': "Change code", 'passcode': new_code})
+        http.request("http://community.linuxmint.com/user/change_registration_passcode", "POST", headers = {'Content-type' : 'application/x-www-form-urlencoded', 'Cookie' : resp["set-cookie"]}, body = data)
             
     def get_cookies_str(self, cookies):
         cookies_array = []
