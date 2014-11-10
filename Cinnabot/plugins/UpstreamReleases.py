@@ -9,9 +9,7 @@ from distutils.version import LooseVersion
 class UpstreamReleasesPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
-        
-        self._known_releases = {}
-        
+                
         bot._irc.execute_every(3600, self._check_releases)
         self._check_releases()
     
@@ -21,43 +19,68 @@ class UpstreamReleasesPlugin(BasePlugin):
         self._start_task(self._do_check_releases, "virtualbox")
     
     def _do_check_releases(self, package):
-        try:
-            version_list = []
-            c = httplib2.Http()
-            if package == "virtualbox":
-                resp, content = c.request("http://download.virtualbox.org/virtualbox/")
-                split_string = "<A"
-                ignore_lines_start = 0
-            elif package == "firefox":
-                resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/firefox/releases/")
-                split_string = "<tr"
-                ignore_lines_start = 4
-            else:
-                resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/")
-                split_string = "<tr"
-                ignore_lines_start = 4
-            for release in content.split(split_string)[ignore_lines_start:]:
+        version_list = []
+        c = httplib2.Http()
+        if package == "virtualbox":
+            resp, content = c.request("http://download.virtualbox.org/virtualbox/")
+            split_string = "<A"
+            ignore_lines_start = 0
+        elif package == "firefox":
+            resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/firefox/releases/")
+            split_string = "<tr"
+            ignore_lines_start = 4
+        else:
+            resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/")
+            split_string = "<tr"
+            ignore_lines_start = 4
+        for release in content.split(split_string)[ignore_lines_start:]:
+            try:
+                if package == "virtualbox":
+                    version = release.split("HREF=\"")[1].split("/\"")[0]
+                else:
+                    version = release.split("<a href=\"")[1].split("/\"")[0]
+                if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version:
+                    version_list.append(version)
+            except:
+                pass
+        version_list.sort(lambda a,b: cmp(LooseVersion(a), LooseVersion(b)))
+        last_version = version_list[-1]
+        
+        current_version = None
+        
+        if package == "virtualbox":
+            main_version = None
+            resp, content = c.request("http://packages.linuxmint.com/pool/import/v/")
+            for p in content.split("<a"):
                 try:
-                    if package == "virtualbox":
-                        version = release.split("HREF=\"")[1].split("/\"")[0]
-                    else:
-                        version = release.split("<a href=\"")[1].split("/\"")[0]
-                    if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version:
-                        version_list.append(version)
+                    link = p.split("href=\"")[1].split("/\"")[0]
+                    if link.startswith("virtualbox-"):
+                        version = link.split("-")[-1]
+                        if main_version == None or LooseVersion(version) > LooseVersion(main_version):
+                            main_version = version
                 except:
                     pass
-            version_list.sort(lambda a,b: cmp(LooseVersion(a), LooseVersion(b)))
-            last_version = version_list[-1]
-            
-            if package in self._known_releases and LooseVersion(last_version) > LooseVersion(self._known_releases[package]):
-                self._known_releases[package] = last_version
-                if self._has_config("warn_users"):
-                    warn_users = self._get_config("warn_users").split(",")
-                    msg_start = ", ".join(warn_users) + " : "
-                else:
-                    msg_start = ""
-                return self.privmsg_response(self._get_config("output_channel"), msg_start + "New upstream release of %s %s" % (package, last_version))
-            else:
-                self._known_releases[package] = last_version
-        except:
-            pass
+            current_versions_link = "http://packages.linuxmint.com/pool/import/v/virtualbox-%s/" % main_version
+            resp, content = c.request(current_versions_link)
+            for release in content.split("<a"):
+                try:
+                    filename = release.split("href=\"")[1].split("\"")[0]
+                    current_version = filename.split("_")[1].split("-")[0]
+                    break
+                except:
+                    pass
+        else:
+            current_versions_link = "http://packages.linuxmint.com/pool/import/%s/%s/" % (package[0], package)
+            resp, content = c.request(current_versions_link)
+            for release in content.split("<a"):
+                try:
+                    filename = release.split("href=\"")[1].split("\"")[0]
+                    if filename.endswith(".tar.gz"):
+                        current_version = filename[len(package) + 1:].split("%")[0]
+                except:
+                    pass
+        
+        if LooseVersion(last_version) > LooseVersion(current_version):
+            warn_users = self._get_config("warn_users").split(",")
+            for u in warn_users:
+                return self.privmsg_response(u, "New upstream release of %s %s" % (package, last_version))
