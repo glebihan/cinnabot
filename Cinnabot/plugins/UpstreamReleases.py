@@ -81,6 +81,8 @@ class UpstreamReleasesPlugin(BasePlugin):
                     pass
         
         if LooseVersion(last_version) > LooseVersion(current_version):
+            res = []
             warn_users = self._get_config("warn_users").split(",")
             for u in warn_users:
-                return self.privmsg_response(u, "New upstream release of %s %s" % (package, last_version))
+                res.append(self.privmsg_response(u, "New upstream release of %s %s" % (package, last_version)))
+            return res
