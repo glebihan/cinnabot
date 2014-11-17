@@ -137,6 +137,14 @@ class BasePlugin(object):
         self._tasks[self._task_id] = task
         task.run()
     
+    def _prevent_handle(self, handle_type, msg):
+        i = 1
+        while self._has_config("prevent_%s_mask%d" % (handle_type, i)):
+            if re.compile(self._get_config("prevent_%s_mask%d" % (handle_type, i))).search(msg):
+                return True
+            i += 1
+        return False
+    
     def handle_highlight(self, from_username, source, target, msg):
         logging.info("plugin_handle_highlight:" + self._plugin_name + ":" + from_username + ":" + source + ":" + target + ":" + msg)
         
@@ -152,7 +160,8 @@ class BasePlugin(object):
     def handle_channel_message(self, source, target, msg):
         logging.info("plugin_handle_channel_message:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)
         
-        if hasattr(self, "process_channel_message"):
+        if hasattr(self, "process_channel_message") and not self._prevent_handle("handle_channel_message", msg):
+            print self
             self._start_task(self.process_channel_message, source, target, msg)
             
     def handle_channel_action(self, source, target, msg):
