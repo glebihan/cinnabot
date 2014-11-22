@@ -50,18 +50,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         
         if package == "virtualbox":
             main_version = None
-            resp, content = c.request("http://packages.linuxmint.com/pool/import/v/")
-            for p in content.split("<a"):
-                try:
-                    link = p.split("href=\"")[1].split("/\"")[0]
-                    if link.startswith("virtualbox-"):
-                        version = link.split("-")[-1]
-                        if main_version == None or LooseVersion(version) > LooseVersion(main_version):
-                            main_version = version
-                except:
-                    pass
-            current_versions_link = "http://packages.linuxmint.com/pool/import/v/virtualbox-%s/" % main_version
-            resp, content = c.request(current_versions_link)
+            resp, content = c.request("http://packages.linuxmint.com/pool/upstream/v/virtualbox/")
             for release in content.split("<a"):
                 try:
                     filename = release.split("href=\"")[1].split("\"")[0]
