@@ -17,6 +17,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         self._start_task(self._do_check_releases, "firefox")
         self._start_task(self._do_check_releases, "thunderbird")
         self._start_task(self._do_check_releases, "virtualbox")
+        self._start_task(self._do_check_releases, "flash")
     
     def _do_check_releases(self, package):
         version_list = []
@@ -25,6 +26,8 @@ class UpstreamReleasesPlugin(BasePlugin):
             resp, content = c.request("http://download.virtualbox.org/virtualbox/")
             split_string = "<A"
             ignore_lines_start = 0
+        elif package == "flash":
+            resp, content = c.request("https://www.adobe.com/software/flash/about/")
         elif package == "firefox":
             resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/firefox/releases/")
             split_string = "<tr"
@@ -33,16 +36,19 @@ class UpstreamReleasesPlugin(BasePlugin):
             resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/")
             split_string = "<tr"
             ignore_lines_start = 4
-        for release in content.split(split_string)[ignore_lines_start:]:
-            try:
-                if package == "virtualbox":
-                    version = release.split("HREF=\"")[1].split("/\"")[0]
-                else:
-                    version = release.split("<a href=\"")[1].split("/\"")[0]
-                if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version:
-                    version_list.append(version)
-            except:
-                pass
+        if package == "flash":
+            version_list.append(content.split("<strong>Linux</strong>")[1].split('</tr>')[0].split('<td>')[-1].split('</td>')[0])
+        else:
+            for release in content.split(split_string)[ignore_lines_start:]:
+                try:
+                    if package == "virtualbox":
+                        version = release.split("HREF=\"")[1].split("/\"")[0]
+                    else:
+                        version = release.split("<a href=\"")[1].split("/\"")[0]
+                    if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version:
+                        version_list.append(version)
+                except:
+                    pass
         version_list.sort(lambda a,b: cmp(LooseVersion(a), LooseVersion(b)))
         last_version = version_list[-1]
         
@@ -71,13 +77,20 @@ class UpstreamReleasesPlugin(BasePlugin):
                 except:
                     pass
         else:
-            current_versions_link = "http://packages.linuxmint.com/pool/import/%s/%s/" % (package[0], package)
+            if package == "flash":
+                mint_package = "mint-flashplugin-11"
+            else:
+                mint_package = package
+            current_versions_link = "http://packages.linuxmint.com/pool/import/%s/%s/" % (mint_package[0], mint_package)
             resp, content = c.request(current_versions_link)
             for release in content.split("<a"):
                 try:
                     filename = release.split("href=\"")[1].split("\"")[0]
                     if filename.endswith(".tar.gz"):
-                        current_version = filename[len(package) + 1:].split("%")[0]
+                        if package == "flash":
+                            current_version = filename[len(mint_package) + 1:][:-7]
+                        else:
+                            current_version = filename[len(mint_package) + 1:].split("%")[0]
                 except:
                     pass
         
