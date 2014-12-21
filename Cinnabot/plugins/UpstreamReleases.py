@@ -49,6 +49,8 @@ class UpstreamReleasesPlugin(BasePlugin):
                         version_list.append(version)
                 except:
                     pass
+        if len(version_list) == 0:
+            raise Exception("Could not load last version for %s" % package)
         version_list.sort(lambda a,b: cmp(LooseVersion(a), LooseVersion(b)))
         last_version = version_list[-1]
         
@@ -93,6 +95,8 @@ class UpstreamReleasesPlugin(BasePlugin):
                             current_version = filename[len(mint_package) + 1:].split("%")[0]
                 except:
                     pass
+        if current_version == None:
+            raise Exception("Could not load current version for %s" % package)
         
         if LooseVersion(last_version) > LooseVersion(current_version):
             res = []
