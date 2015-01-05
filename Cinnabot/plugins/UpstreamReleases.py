@@ -83,7 +83,7 @@ class UpstreamReleasesPlugin(BasePlugin):
                 mint_package = "mint-flashplugin-11"
             else:
                 mint_package = package
-            current_versions_link = "http://packages.linuxmint.com/pool/import/%s/%s/" % (mint_package[0], mint_package)
+            current_versions_link = "http://denver.linuxmint.com/pool/import/%s/%s/" % (mint_package[0], mint_package)
             resp, content = c.request(current_versions_link)
             for release in content.split("<a"):
                 try:
