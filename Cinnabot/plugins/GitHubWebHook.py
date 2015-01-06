@@ -14,6 +14,11 @@ class GitHubWebHookPluginServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHand
         
         if "commits" in postdata:
             self.server.plugin._start_task(self.server.plugin.handle_commits, postdata)
+        else:
+            return False
+        
+        self.send_response(200)
+        self.end_headers()
 
 class GitHubWebHookPluginServer(BaseHTTPServer.HTTPServer):
     def __init__(self, plugin, port):
