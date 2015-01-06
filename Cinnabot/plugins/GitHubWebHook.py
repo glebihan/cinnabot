@@ -17,7 +17,7 @@ class GitHubWebHookPluginServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHand
 
 class GitHubWebHookPluginServer(BaseHTTPServer.HTTPServer):
     def __init__(self, plugin, port):
-        BaseHTTPServer.HTTPServer.__init__(self, ('localhost', port), GitHubWebHookPluginServerRequestHandler)
+        BaseHTTPServer.HTTPServer.__init__(self, ('', port), GitHubWebHookPluginServerRequestHandler)
         self.port = port
         self.plugin = plugin
 
