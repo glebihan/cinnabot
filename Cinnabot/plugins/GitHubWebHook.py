@@ -30,8 +30,8 @@ class GitHubWebHookPlugin(BasePlugin):
     def _shorten_url(self, url):
         try:
             c = httplib2.Http()
-            resp, content = c.request("https://www.googleapis.com/urlshortener/v1/url?key=" + self._get_config("google_url_shortener_api_key"), "POST", headers = {"Content-Type": "application/json"}, body = json.dumps({"longUrl": url}))
-            res = json.loads(content)["id"]
+            resp, content = c.request("http://git.io", "POST", headers = {"Content-Type": "multipart/form-data"}, body = urllib.urlencode({'url': url}))
+            res = resp['location']
         except:
             res = url
         return res
