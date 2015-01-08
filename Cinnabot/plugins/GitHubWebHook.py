@@ -57,11 +57,14 @@ class GitHubWebHookPlugin(BasePlugin):
         }))
         commit_sentence = "\x0f\x0313%(repository)s\x0f/\x0306%(branch)s\x0f \x0314%(id)s\x0f \x0315%(author)s\x0f: %(message)s"
         for commit in postdata['commits']:
+            commit_message = commit['message']
+            if len(commit_message) > 70:
+                commit_message = commit_message[:67] + "..."
             res.append(self.privmsg_response(self._get_config('output_channel'), commit_sentence % {
                 'branch': postdata['ref'].split('/')[-1],
                 'repository': postdata['repository']['name'],
                 'author': commit['author']['name'],
                 'id': commit['id'][:7],
-                'message': commit['message']
+                'message': commit_message
             }))
         return res
