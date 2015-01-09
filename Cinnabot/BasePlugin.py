@@ -5,6 +5,8 @@ import logging
 import threading
 import sys
 import re
+import os
+import time
 
 class PluginResponse(object):
     pass
@@ -224,3 +226,12 @@ class BasePlugin(object):
         mute_host = mute_mask.split("@")[1]
         while mute_host in self.muted_hosts.setdefault(channel, []):
             del self.muted_hosts[channel][self.muted_hosts[channel].index(mute_host)]
+    
+    def _log(self, msg):
+        filename = os.path.join(os.getenv('HOME'), '.config', 'cinnabot', self._plugin_name + '.log')
+        if os.path.exists(filename):
+            f = open(filename, 'a')
+        else:
+            f = open(filename, 'w')
+        f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + msg + '\n')
+        f.close()

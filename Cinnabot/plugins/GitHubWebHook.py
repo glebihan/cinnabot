@@ -46,8 +46,16 @@ class GitHubWebHookPlugin(BasePlugin):
         server.serve_forever()
     
     def handle_commits(self, postdata):
+        self._log(str(postdata))
         res = []
         sentence = "\x0f[\x0313%(repository)s\x0f] \x0315%(pusher)s\x0f pushed \x02%(nb_commits)d\x0f new commit" + ("", "s")[len(postdata['commits']) > 1] + " to \x0306%(branch)s\x0f: \x0302\x1f%(url)s\x0f"
+        self._log(sentence % {
+            'branch': postdata['ref'].split('/')[-1],
+            'repository': postdata['repository']['name'],
+            'pusher': postdata['pusher']['name'],
+            'nb_commits': len(postdata['commits']),
+            'url': self._shorten_url(postdata['head_commit']['url'])
+        })
         res.append(self.privmsg_response(self._get_config('output_channel'), sentence % {
             'branch': postdata['ref'].split('/')[-1],
             'repository': postdata['repository']['name'],
@@ -60,6 +68,13 @@ class GitHubWebHookPlugin(BasePlugin):
             commit_message = commit['message']
             if len(commit_message) > 70:
                 commit_message = commit_message[:67] + "..."
+            self._log(commit_sentence % {
+                'branch': postdata['ref'].split('/')[-1],
+                'repository': postdata['repository']['name'],
+                'author': commit['author']['name'],
+                'id': commit['id'][:7],
+                'message': commit_message
+            })
             res.append(self.privmsg_response(self._get_config('output_channel'), commit_sentence % {
                 'branch': postdata['ref'].split('/')[-1],
                 'repository': postdata['repository']['name'],
