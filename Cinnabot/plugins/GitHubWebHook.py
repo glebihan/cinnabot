@@ -54,14 +54,14 @@ class GitHubWebHookPlugin(BasePlugin):
             'repository': postdata['repository']['name'],
             'pusher': postdata['pusher']['name'],
             'nb_commits': len(postdata['commits']),
-            'url': self._shorten_url(postdata['head_commit']['url'])
+            'url': self._shorten_url(postdata['compare'])
         })
         res.append(self.privmsg_response(self._get_config('output_channel'), sentence % {
             'branch': postdata['ref'].split('/')[-1],
             'repository': postdata['repository']['name'],
             'pusher': postdata['pusher']['name'],
             'nb_commits': len(postdata['commits']),
-            'url': self._shorten_url(postdata['head_commit']['url'])
+            'url': self._shorten_url(postdata['compare'])
         }))
         commit_sentence = "\x0f\x0313%(repository)s\x0f/\x0306%(branch)s\x0f \x0314%(id)s\x0f \x0315%(author)s\x0f: %(message)s"
         for commit in postdata['commits']:
