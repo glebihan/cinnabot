@@ -14,7 +14,7 @@ class PluginResponse(object):
 class PluginPrivmsgResponse(PluginResponse):
     def __init__(self, target, msg):
         self._target = target
-        self._msg = msg
+        self._msg = msg.replace("\n", " ").replace("\r", " ")
     
     def process(self, irc, irc_server_connection):
         if len(self._msg) <= 300:
@@ -23,7 +23,7 @@ class PluginPrivmsgResponse(PluginResponse):
 class PluginActionResponse(PluginResponse):
     def __init__(self, target, msg):
         self._target = target
-        self._msg = msg
+        self._msg = msg.replace("\n", " ").replace("\r", " ")
     
     def process(self, irc, irc_server_connection):
         irc_server_connection.action(self._target, self._msg)
@@ -31,7 +31,7 @@ class PluginActionResponse(PluginResponse):
 class PluginNoticeResponse(PluginResponse):
     def __init__(self, target, msg):
         self._target = target
-        self._msg = msg
+        self._msg = msg.replace("\n", " ").replace("\r", " ")
     
     def process(self, irc, irc_server_connection):
         irc_server_connection.notice(self._target, self._msg)
