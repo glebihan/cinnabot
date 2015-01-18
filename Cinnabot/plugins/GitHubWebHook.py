@@ -96,7 +96,7 @@ class GitHubWebHookPlugin(BasePlugin):
         return res
 
     def make_push_summary(self, postdata):
-        message = "\x0f[%s] %s" % (self._format(postdata['repository']['name'], "repo"), self._format(postdata['author']['name'].encode('ascii', 'ignore'), "author"))
+        message = "\x0f[%s] %s" % (self._format(postdata['repository']['name'], "repo"), self._format(postdata['pusher']['name'].encode('ascii', 'ignore'), "author"))
 
         distinct_commits = []
         for commit in postdata['commits']:
@@ -105,7 +105,8 @@ class GitHubWebHookPlugin(BasePlugin):
         num = len(distinct_commits)
 
         ref_name = re.sub("\Arefs/(heads|tags)/", "", postdata['ref'])
-        base_ref_name = re.sub("\Arefs/(heads|tags)/", "", postdata['base_ref'])
+        if postdata['base_ref']:
+            base_ref_name = re.sub("\Arefs/(heads|tags)/", "", postdata['base_ref'])
 
         if postdata['created']:
             if "refs/tags/" in postdata['ref']:
@@ -138,13 +139,15 @@ class GitHubWebHookPlugin(BasePlugin):
 
         else:
             message += " pushed %s new commit%s to %s" % (self._format(num, "bold"), ("", "s")[num > 1], ref_name)
-
-        if num > 1:
-            url = postdata['compare']
+        
+        if not postdata['deleted']:
+            if num > 1:
+                url = postdata['compare']
+            else:
+                url = postdata['head_commit']['url']
+            return message + ": \x0302\x1f%s\x0f" % self._shorten_url(url)
         else:
-            url = postdata['head_commit']['url']
-
-        return message + ": \x0302\x1f%s\x0f" % self._shorten_url(url)
+            return message
 
     def _format(self, text, t):
         before = {
