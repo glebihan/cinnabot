@@ -5,6 +5,7 @@ from Cinnabot.BasePlugin import BasePlugin
 import urllib
 import urlparse
 import json
+import re
 import httplib2
 import BaseHTTPServer
 import _codecs
@@ -73,16 +74,11 @@ class GitHubWebHookPlugin(BasePlugin):
     def handle_commits(self, postdata):
         self._log(str(postdata))
         res = []
-        sentence = "\x0f[\x0313%(repository)s\x0f] \x0315%(pusher)s\x0f pushed \x02%(nb_commits)d\x0f new commit" + ("", "s")[len(postdata['commits']) > 1] + " to \x0306%(branch)s\x0f: \x0302\x1f%(url)s\x0f"
-        data = {
-            'branch': postdata['ref'].split('/')[-1],
-            'repository': postdata['repository']['name'],
-            'pusher': postdata['pusher']['name'],
-            'nb_commits': len(postdata['commits']),
-            'url': self._shorten_url(postdata['compare'])
-        }
-        self._log(sentence % data)
-        res.append(self.privmsg_response(self._get_config('output_channel'), sentence % data))
+
+        summary = self.make_push_summary(postdata)
+        self._log(summary)
+        res.append(self.privmsg_response(self._get_config('output_channel'), summary))
+
         commit_sentence = "\x0f\x0313%(repository)s\x0f/\x0306%(branch)s\x0f \x0314%(id)s\x0f \x0315%(author)s\x0f: %(message)s"
         for commit in postdata['commits'][:3]:
             commit_message = commit['message'].replace("\n", " ").replace("\r", " ")
@@ -98,3 +94,68 @@ class GitHubWebHookPlugin(BasePlugin):
             self._log(commit_sentence % data)
             res.append(self.privmsg_response(self._get_config('output_channel'), commit_sentence % data))
         return res
+
+    def make_push_summary(self, postdata):
+        message = "\x0f[%s] %s" % (self._format(postdata['repository']['name'], "repo"), self._format(postdata['pusher']['name'].encode('ascii', 'ignore'), "author"))
+
+        distinct_commits = []
+        for commit in postdata['commits']:
+            if commit['distinct'] and commit['message'] != "":
+                distinct_commits.append(commit)
+        num = len(distinct_commits)
+
+        ref_name = re.sub("\Arefs/(heads|tags)/", "", postdata['ref'])
+        if postdata['base_ref']:
+            base_ref_name = re.sub("\Arefs/(heads|tags)/", "", postdata['base_ref'])
+
+        if postdata['created']:
+            if "refs/tags/" in postdata['ref']:
+                message += " tagged %s at" % self._format(ref_name, "tag")
+                if postdata['base_ref']:
+                    message += " " + self._format(base_ref_name, "branch")
+                else:
+                    message += " " + self._format(postdata['after'][:7], "hash")
+            else:
+                message += " created " + self._format(ref_name, "branch")
+
+                if postdata['base_ref']:
+                    message += " from " + self._format(base_ref_name, "branch")
+                elif num > 0:
+                    message += " at " + self._format(postdata['after'][:7], "hash")
+
+                message += " (+%s new commit%s)" % (self._format(num, "bold"), ("", "s")[num > 1])
+
+        elif postdata['deleted']:
+            message += " \00304deleted\017 %s at %s" % (self._format(ref_name, "branch"), self._format(postdata['before'][:7], "hash"))
+
+        elif postdata['forced']:
+            message += " \00304force-pushed\017 %s from %s to %s" % (self._format(ref_name, "branch"), self._format(postdata['before'][:7], "hash"), self._format(postdata['after'][:7], "hash"))
+
+        elif len(postdata['commits']) > 0 and num == 0:
+            if postdata['base_ref']:
+                message += " merged %s into %s" % (base_ref_name, ref_name)
+            else:
+                message += " fast-forwarded %s from %s to %s" % (ref_name, self._format(postdata['before'][:7], "hash"), self._format(postdata['after'][:7], "hash"))
+
+        else:
+            message += " pushed %s new commit%s to %s" % (self._format(num, "bold"), ("", "s")[num > 1], ref_name)
+        
+        if not postdata['deleted']:
+            if num > 1:
+                url = postdata['compare']
+            else:
+                url = postdata['head_commit']['url']
+            return message + ": \x0302\x1f%s\x0f" % self._shorten_url(url)
+        else:
+            return message
+
+    def _format(self, text, t):
+        before = {
+            'bold':   "\x02",
+            'branch': "\x0306",
+            'tag':    "\x0306",
+            'repo':   "\x0313",
+            'hash':   "\x0314",
+            'author': "\x0315"
+        }
+        return "%s%s\x0f" % (before[t], text)
