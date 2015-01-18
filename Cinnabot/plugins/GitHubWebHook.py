@@ -133,12 +133,12 @@ class GitHubWebHookPlugin(BasePlugin):
 
         elif len(postdata['commits']) > 0 and num == 0:
             if postdata['base_ref']:
-                message += " merged %s into %s" % (base_ref_name, ref_name)
+                message += " merged %s into %s" % (self._format(base_ref_name, "branch"), self._format(ref_name, "branch"))
             else:
-                message += " fast-forwarded %s from %s to %s" % (ref_name, self._format(postdata['before'][:7], "hash"), self._format(postdata['after'][:7], "hash"))
+                message += " fast-forwarded %s from %s to %s" % (self._format(ref_name, "branch"), self._format(postdata['before'][:7], "hash"), self._format(postdata['after'][:7], "hash"))
 
         else:
-            message += " pushed %s new commit%s to %s" % (self._format(num, "bold"), ("", "s")[num > 1], ref_name)
+            message += " pushed %s new commit%s to %s" % (self._format(num, "bold"), ("", "s")[num > 1], self._format(ref_name, "branch"))
         
         if not postdata['deleted']:
             if num > 1:
