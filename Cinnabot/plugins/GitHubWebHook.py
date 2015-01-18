@@ -96,7 +96,7 @@ class GitHubWebHookPlugin(BasePlugin):
         return res
 
     def make_push_summary(self, postdata):
-        message = "\x0f[%s] %s" % (self._format(postdata['repository']['name'], "repo"), self._format(commit['author']['name'].encode('ascii', 'ignore'), "author"))
+        message = "\x0f[%s] %s" % (self._format(postdata['repository']['name'], "repo"), self._format(postdata['author']['name'].encode('ascii', 'ignore'), "author"))
 
         distinct_commits = []
         for commit in postdata['commits']:
