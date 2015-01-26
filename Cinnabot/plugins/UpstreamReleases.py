@@ -53,6 +53,12 @@ class UpstreamReleasesPlugin(BasePlugin):
             raise Exception("Could not load last version for %s" % package)
         version_list.sort(lambda a,b: cmp(LooseVersion(a), LooseVersion(b)))
         last_version = version_list[-1]
+        if package == "firefox":
+            resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/firefox/releases/" + last_version)
+            while "Thanks for your interest" in content:
+                del version_list[-1]
+                last_version = version_list[-1]
+                resp, content = c.request("https://download-installer.cdn.mozilla.net/pub/firefox/releases/" + last_version)
         
         current_version = None
         
