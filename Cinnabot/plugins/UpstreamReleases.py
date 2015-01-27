@@ -45,7 +45,7 @@ class UpstreamReleasesPlugin(BasePlugin):
                         version = release.split("HREF=\"")[1].split("/\"")[0]
                     else:
                         version = release.split("<a href=\"")[1].split("/\"")[0]
-                    if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version:
+                    if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version and not "funnelcake" in version:
                         version_list.append(version)
                 except:
                     pass
