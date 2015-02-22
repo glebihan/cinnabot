@@ -58,6 +58,10 @@ class CommunityRegistrationPlugin(BasePlugin):
         return content[i+len(search_str):].split('"')[0]
     
     def process_privmsg(self, from_username, source, target, msg):
+        if msg.lower() in ["newcode", "new code"] and self._bot._is_semi_admin(source):
+            self._change_code()
+            return
+            
         if from_username and msg.lower() in ["nomorecodes", "no more codes"] and not from_username in self._ignore_users:
             self._ignore_users.append(from_username)
             self._set_config("ignore_users", ",".join(self._ignore_users))
