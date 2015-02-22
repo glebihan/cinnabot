@@ -64,10 +64,6 @@ class CommunityRegistrationPlugin(BasePlugin):
             return self.privmsg_response(source.split("!")[0], "OK, I won't send you registration codes anymore")
         
     def process_channel_message(self, source, target, msg):
-        from_nickname = source.split("!")[0]
-        if from_nickname in self._bot._nick_to_username_map and self._bot._nick_to_username_map[from_nickname] in self._ignore_users:
-            return
-            
         words = msg.split()
 
         current_word = ""
@@ -83,6 +79,9 @@ class CommunityRegistrationPlugin(BasePlugin):
             words_lower.append(current_word)
         
         if ("d'enregistrement" in words_lower and "code" in words_lower) or ("registro" in words_lower and (u'c\ufffddigo' in words_lower or 'codigo' in words_lower)) or ("registration" in words_lower and "code" in words_lower) or ("community" in words_lower and "code" in words_lower) or ("registration" in words_lower and "community" in words_lower) or ("reg code" in msg.lower()) or ("reg. code" in msg.lower()):
+            from_nickname = source.split("!")[0]
+            if from_nickname in self._bot._nick_to_username_map and self._bot._nick_to_username_map[from_nickname] in self._ignore_users:
+                return
             if not source in self._users_with_code or ((time.time() - self._users_with_code[source]) > 300):
                 self._users_with_code[source] = time.time()
                 
