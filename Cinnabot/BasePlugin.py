@@ -106,6 +106,10 @@ class BasePlugin(object):
     def _get_config(self, key):
         return self._bot.config.get("Plugin/" + self._plugin_name, key)
     
+    def _set_config(self, key, value):
+        self._bot.config.set("Plugin/" + self._plugin_name, key, value)
+        self._bot._save_config()
+    
     def _get_config_options(self):
         return self._bot.config.options("Plugin/" + self._plugin_name)
     

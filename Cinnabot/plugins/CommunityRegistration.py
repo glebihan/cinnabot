@@ -11,6 +11,10 @@ class CommunityRegistrationPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
         self._users_with_code = {}
+        if self._has_config("ignore_users"):
+            self._ignore_users = self._get_config("ignore_users").split(",")
+        else:
+            self._ignore_users = []
         
         try:
             bot._irc.execute_every(int(self._get_config("change_code_delay")) * 3600, self._change_code)
@@ -52,8 +56,18 @@ class CommunityRegistrationPlugin(BasePlugin):
         search_str = "<input type=\"text\" name=\"passcode\" value=\""
         i = content.index(search_str)
         return content[i+len(search_str):].split('"')[0]
+    
+    def process_privmsg(self, from_username, source, target, msg):
+        if from_username and msg.lower() in ["nomorecodes", "no more codes"] and not from_username in self._ignore_users:
+            self._ignore_users.append(from_username)
+            self._set_config("ignore_users", ",".join(self._ignore_users))
+            return self.privmsg_response(source.split("!")[0], "OK, I won't send you registration codes anymore")
         
     def process_channel_message(self, source, target, msg):
+        from_nickname = source.split("!")[0]
+        if from_nickname in self._bot._nick_to_username_map and self._bot._nick_to_username_map[from_nickname] in self._ignore_users:
+            return
+            
         words = msg.split()
 
         current_word = ""
