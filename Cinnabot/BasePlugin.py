@@ -36,6 +36,14 @@ class PluginNoticeResponse(PluginResponse):
     def process(self, irc, irc_server_connection):
         irc_server_connection.notice(self._target, self._msg)
 
+class PluginSajoinResponse(PluginResponse):
+    def __init__(self, target, channel):
+        self._target = target
+        self._channel = channel
+    
+    def process(self, irc, irc_server_connection):
+        irc_server_connection.send_raw("sajoin %s %s" % (self._target, self._channel))
+
 class TimedQuietResponse(PluginResponse):
     def __init__(self, plugin, channel, user, quiet_time, debug_mode):
         self._plugin = plugin
@@ -188,6 +196,12 @@ class BasePlugin(object):
         if hasattr(self, "process_channel_join"):
             self._start_task(self.process_channel_join, source, target)
     
+    def handle_channel_part(self, source, target):
+        logging.info("plugin_handle_channel_part:" + self._plugin_name + ":" + source + ":" + target)
+        
+        if hasattr(self, "process_channel_part"):
+            self._start_task(self.process_channel_part, source, target)
+    
     def privmsg_response(self, target, msg):
         return PluginPrivmsgResponse(target, msg)
     
@@ -196,6 +210,9 @@ class BasePlugin(object):
         
     def notice_response(self, target, msg):
         return PluginNoticeResponse(target, msg)
+        
+    def sajoin_response(self, target, channel):
+        return PluginSajoinResponse(target, channel)
         
     def wallchop_response(self, target, msg):
         if self._has_config("always_wallchop_users"):

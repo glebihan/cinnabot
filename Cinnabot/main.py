@@ -395,6 +395,16 @@ class Cinnabot(object):
             if event.target.startswith("#") and event.target in plugin.get_channels():
                 plugin.handle_channel_join(event.source, event.target)
     
+    def _on_irc_part(self, server_connection, event):
+        logging.info("_on_irc_part:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        if event.source.split("!")[0] == self._irc_server_connection.get_nickname():
+            return
+        
+        for plugin in self._plugins.values():
+            if event.target.startswith("#") and event.target in plugin.get_channels():
+                plugin.handle_channel_part(event.source, event.target)
+    
     def _on_irc_mode(self, server_connection, event):
         logging.info("_on_irc_mode:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
         
@@ -426,6 +436,7 @@ class Cinnabot(object):
         self._irc.add_global_handler("whoischannels", self._on_irc_whoischannels)
         self._irc.add_global_handler("whoreply", self._on_irc_whoreply)
         self._irc.add_global_handler("join", self._on_irc_join)
+        self._irc.add_global_handler("part", self._on_irc_part)
         self._irc.add_global_handler("mode", self._on_irc_mode)
         self._irc_server_connection = self._irc.server()
         self._irc_server_connection.buffer_class.errors = 'replace'
