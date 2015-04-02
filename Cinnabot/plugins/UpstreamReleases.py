@@ -18,6 +18,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         self._start_task(self._do_check_releases, "thunderbird")
         self._start_task(self._do_check_releases, "virtualbox")
         self._start_task(self._do_check_releases, "flash")
+        self._start_task(self._do_check_releases, "hplip")
     
     def _do_check_releases(self, package):
         version_list = []
@@ -26,6 +27,10 @@ class UpstreamReleasesPlugin(BasePlugin):
             resp, content = c.request("http://download.virtualbox.org/virtualbox/")
             split_string = "<A"
             ignore_lines_start = 0
+        elif package == "hplip":
+            resp, content = c.request("http://sourceforge.net/projects/hplip/files/hplip/")
+            split_string = "<th scope=\"row\" headers=\"files_name_h\">"
+            ignore_lines_start = 1
         elif package == "flash":
             resp, content = c.request("https://www.adobe.com/software/flash/about/")
         elif package == "firefox":
@@ -45,10 +50,13 @@ class UpstreamReleasesPlugin(BasePlugin):
                         version = release.split("HREF=\"")[1].split("/\"")[0]
                     else:
                         version = release.split("<a href=\"")[1].split("/\"")[0]
+                    if package == "hplip":
+                        version = version.split("/")[-1]
                     if version[0] in "0123456789" and not "b" in version and not "RC" in version and not "BETA" in version and not "funnelcake" in version:
                         version_list.append(version)
                 except:
                     pass
+
         if len(version_list) == 0:
             raise Exception("Could not load last version for %s" % package)
         version_list.sort(lambda a,b: cmp(LooseVersion(a), LooseVersion(b)))
