@@ -25,7 +25,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         c = httplib2.Http()
         if package == "virtualbox":
             resp, content = c.request("http://download.virtualbox.org/virtualbox/")
-            split_string = "<A"
+            split_string = "<a"
             ignore_lines_start = 0
         elif package == "hplip":
             resp, content = c.request("http://sourceforge.net/projects/hplip/files/hplip/")
@@ -47,7 +47,7 @@ class UpstreamReleasesPlugin(BasePlugin):
             for release in content.split(split_string)[ignore_lines_start:]:
                 try:
                     if package == "virtualbox":
-                        version = release.split("HREF=\"")[1].split("/\"")[0]
+                        version = release.split("href=\"")[1].split("/\"")[0]
                     else:
                         version = release.split("<a href=\"")[1].split("/\"")[0]
                     if package == "hplip":
