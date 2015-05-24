@@ -127,6 +127,9 @@ class BasePlugin(object):
     def _has_config(self, key):
         return self._bot.config.has_option("Plugin/" + self._plugin_name, key)
     
+    def _remove_config(self, key):
+        return self._bot.config.remove_option("Plugin/" + self._plugin_name, key)
+    
     def need_admin(self):
         return self._has_config("need_admin") and self._get_boolean_config("need_admin")
     
