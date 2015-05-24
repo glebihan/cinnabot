@@ -11,7 +11,7 @@ class ExternalScriptsPlugin(BasePlugin):
     def _run_command(self, from_username, resp_target, command_name, exec_command, exec_params):
         status = subprocess.call([exec_command] + exec_params)
         if status != 0:
-            resp_msg = "%s failed" % command_name
+            resp_msg = "\x0305\x02%s failed\x0f" % command_name
             if resp_target.startswith("#"):
                 resp_msg = from_username + ", " + resp_msg
             return self.privmsg_response(resp_target, resp_msg)
