@@ -50,7 +50,7 @@ class UrlsPlugin(BasePlugin):
             try:
                 match = REG_EXP.match(word)
                 if match:
-                    url = match.groups()[0]
+                    url = match.groups()[0].split("#")[0]
                     process = False
                     for domain in self.domains:
                         if fnmatch.fnmatch(urlparse.urlparse(url).netloc, domain):
