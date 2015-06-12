@@ -91,7 +91,7 @@ class CommunityRegistrationPlugin(BasePlugin):
                 
                 code = self._retrieve_code()
                 
-                return [self.notice_response(source.split("!")[0], "Your registration code is %s" % code), self.notice_response(self._get_config("log_to_user"), "A registration code was sent to %s by notice." % source.split("!")[0])]
+                return [self.notice_response(source.split("!")[0], "Your registration code is %s" % code), self.privmsg_response(target, "Code sent")]
         
         if len(words) == 2 and words[0].lower() in ["!code", "!registration"]:
             dest_nickname = words[1]
@@ -100,4 +100,4 @@ class CommunityRegistrationPlugin(BasePlugin):
                 
                 code = self._retrieve_code()
                 
-                return [self.notice_response(dest_nickname, "Your registration code is %s" % code), self.notice_response(source.split("!")[0], "A registration code was sent to %s by notice." % dest_nickname)]
+                return [self.notice_response(dest_nickname, "Your registration code is %s" % code), self.privmsg_response(target, "Code sent")]
