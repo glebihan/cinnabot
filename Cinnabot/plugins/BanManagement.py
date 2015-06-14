@@ -71,7 +71,7 @@ class BanManagementPlugin(BasePlugin):
             elif unit == "d":
                 endtime = datetime.datetime.utcnow() + datetime.timedelta(int(value))
             endtime = endtime.strftime("%Y-%m-%d %H:%M:%S")
-        self._db_query("DELETE FROM `bans` WHERE `channel` = ? AND `mask` = ?", (channel, mask))
+        self._db_query("UPDATE `bans` SET `removed` = 1 WHERE `channel` = ? AND `mask` = ?", (channel, mask))
         self._db_query("""
             INSERT INTO `bans` (`mask`, `nickname`, `channel`, `from_op`, `ban_date`, `ban_expiration`, `comment`, `removed`)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, nickname, channel, from_op, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), endtime, comment))
