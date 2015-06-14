@@ -93,6 +93,10 @@ class BanManagementPlugin(BasePlugin):
             self._start_task(self._ban, ban_mask, nickname, channel, from_op, duration, comment)
         if command in ["!unban"]:
             self._start_task(self._unban, ban_mask, channel)
+        if command in ["!mute"]:
+            self._start_task(self._ban, "m:" + ban_mask, nickname, channel, from_op, duration, comment)
+        if command in ["!unmute"]:
+            self._start_task(self._unban, "m:" + ban_mask, channel)
         
     def _banlist(self, from_op, channel):
         res = []
@@ -109,7 +113,7 @@ class BanManagementPlugin(BasePlugin):
             words = msg.split()
             words[0] = words[0].lower()
             
-            if words[0] in ["!kick", "!ban", "!kickban", "!unban"]:
+            if words[0] in ["!kick", "!ban", "!kickban", "!unban", "!mute", "!unmute"]:
                 nickname_or_mask = words[1]
                 comment = ""
                 duration = "1d"
