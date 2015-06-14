@@ -101,7 +101,7 @@ class BanManagementPlugin(BasePlugin):
     def _banlist(self, from_op, channel):
         res = []
         for ban in self._db_query("SELECT * FROM `bans` WHERE `removed` = 0 AND `channel` = ?", (channel,)):
-            res.append(self.notice_response(from_op.split("!")[0], "%s Banlist: \x0303%s -> %s\x0f \x0305%s %s\x0f" % (channel, ban[5], ban[6], ban[1], ban[4])))
+            res.append(self.notice_response(from_op.split("!")[0], "%s Banlist: \x0303%s -> %s\x0f \x0305%s %s\x0f (%s)" % (channel, ban[5], ban[6], ban[1], ban[4], ban[7])))
         res.append(self.notice_response(from_op.split("!")[0], "%s :End of channel ban list" % (channel,)))
         return res
     
