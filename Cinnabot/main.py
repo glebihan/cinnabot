@@ -66,6 +66,7 @@ class Cinnabot(object):
         self._plugins = {}
         
         self._identify_user_queue = {}
+        self._whoisuser_queue = {}
         self._nick_to_mask_map = {}
         self._nick_to_username_map = {}
         self._operators = {}
@@ -152,6 +153,8 @@ class Cinnabot(object):
                 plugin_class = getattr(m, plugin_name + "Plugin")
                 plugin = plugin_class(self, plugin_name)
                 self._plugins[plugin_name] = plugin
+                if hasattr(m, "USE_DB") and m.USE_DB:
+                    plugin.init_db(m.DB_UPGRADES)
             except:
                 logging.warn("Failed to load plugin %s : %s" % (plugin_name, str(sys.exc_info())))
         else:
@@ -202,6 +205,12 @@ class Cinnabot(object):
                 self._identify_user_queue[nickname] = []
             self._identify_user_queue[nickname].append((callback, args))
             self._irc_server_connection.whois([nickname])
+            
+    def _get_user_hostmask(self, nickname, callback, *args):
+        if not nickname in self._whoisuser_queue:
+            self._whoisuser_queue[nickname] = []
+        self._whoisuser_queue[nickname].append((callback, args))
+        self._irc_server_connection.whois([nickname])
     
     def _handle_message(self, source, target, msg):
         logging.info("_handle_message:" + source + ":" + target + ":" + msg)
@@ -372,6 +381,19 @@ class Cinnabot(object):
         
         self._nick_to_username_map[event.arguments[0]] = event.arguments[1]
     
+    def _on_irc_whoisuser(self, server_connection, event):
+        logging.info("_on_irc_whoisuser:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        nickname = event.arguments[0]
+        ident = event.arguments[1]
+        hostname = event.arguments[2]
+                
+        if nickname in self._whoisuser_queue:
+            while len(self._whoisuser_queue[nickname]) > 0:
+                callback, args = self._whoisuser_queue[nickname][0]
+                del self._whoisuser_queue[nickname][0]
+                callback("%s!%s@%s" % (nickname, ident, hostname), *args)
+    
     def _on_irc_endofwhois(self, server_connection, event):
         logging.info("_on_irc_endofwhois:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
         
@@ -408,6 +430,12 @@ class Cinnabot(object):
     def _on_irc_mode(self, server_connection, event):
         logging.info("_on_irc_mode:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
         
+        for plugin in self._plugins.values():
+            if event.target.startswith("#") and event.target in plugin.get_channels() and event.arguments[0] == "+b":
+                plugin.handle_irc_ban(event.source, event.target, event.arguments[1])
+            if event.target.startswith("#") and event.target in plugin.get_channels() and event.arguments[0] == "-b":
+                plugin.handle_irc_unban(event.source, event.target, event.arguments[1])
+        
         try:
             mode, mode_target = event.arguments
             if mode == u"-b":
@@ -432,6 +460,7 @@ class Cinnabot(object):
         self._irc.add_global_handler("welcome", self._on_irc_welcome)
         self._irc.add_global_handler("900", self._on_irc_login)
         self._irc.add_global_handler("330", self._on_irc_user_login_info)
+        self._irc.add_global_handler("whoisuser", self._on_irc_whoisuser)
         self._irc.add_global_handler("endofwhois", self._on_irc_endofwhois)
         self._irc.add_global_handler("whoischannels", self._on_irc_whoischannels)
         self._irc.add_global_handler("whoreply", self._on_irc_whoreply)

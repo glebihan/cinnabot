@@ -7,6 +7,7 @@ import sys
 import re
 import os
 import time
+import sqlite3
 
 class PluginResponse(object):
     pass
@@ -43,6 +44,31 @@ class PluginSajoinResponse(PluginResponse):
     
     def process(self, irc, irc_server_connection):
         irc_server_connection.send_raw("sajoin %s %s" % (self._target, self._channel))
+
+class PluginKickResponse(PluginResponse):
+    def __init__(self, target, channel, comment):
+        self._target = target
+        self._channel = channel
+        self._comment = comment
+    
+    def process(self, irc, irc_server_connection):
+        irc_server_connection.kick(self._channel, self._target, self._comment)
+
+class PluginBanResponse(PluginResponse):
+    def __init__(self, target, channel):
+        self._target = target
+        self._channel = channel
+    
+    def process(self, irc, irc_server_connection):
+        irc_server_connection.privmsg("ChanServ", "ban %s %s" % (self._channel, self._target))
+
+class PluginUnbanResponse(PluginResponse):
+    def __init__(self, target, channel):
+        self._target = target
+        self._channel = channel
+    
+    def process(self, irc, irc_server_connection):
+        irc_server_connection.privmsg("ChanServ", "unban %s %s" % (self._channel, self._target))
 
 class TimedQuietResponse(PluginResponse):
     def __init__(self, plugin, channel, user, quiet_time, debug_mode):
@@ -107,6 +133,7 @@ class BasePlugin(object):
         self._task_id = 0
         self._tasks = {}
         self.muted_hosts = {}
+        self._db_lock = threading.Lock()
     
     def unload(self):
         pass
@@ -178,7 +205,6 @@ class BasePlugin(object):
         logging.info("plugin_handle_channel_message:" + self._plugin_name + ":" + source + ":" + target + ":" + msg)
         
         if hasattr(self, "process_channel_message") and not self._prevent_handle("handle_channel_message", msg):
-            print self
             self._start_task(self.process_channel_message, source, target, msg)
             
     def handle_channel_action(self, source, target, msg):
@@ -204,6 +230,18 @@ class BasePlugin(object):
         
         if hasattr(self, "process_channel_part"):
             self._start_task(self.process_channel_part, source, target)
+            
+    def handle_irc_ban(self, source, target, mask):
+        logging.info("plugin_handle_irc_ban:" + self._plugin_name + ":" + source + ":" + target + ":" + mask)
+        
+        if hasattr(self, "process_irc_ban"):
+            self._start_task(self.process_irc_ban, source, target, mask)
+    
+    def handle_irc_unban(self, source, target, mask):
+        logging.info("plugin_handle_irc_unban:" + self._plugin_name + ":" + source + ":" + target + ":" + mask)
+        
+        if hasattr(self, "process_irc_unban"):
+            self._start_task(self.process_irc_unban, source, target, mask)
     
     def privmsg_response(self, target, msg):
         return PluginPrivmsgResponse(target, msg)
@@ -227,6 +265,15 @@ class BasePlugin(object):
     
     def timed_quiet_response(self, channel, user, quiet_time, debug_mode):
         return TimedQuietResponse(self, channel, user, quiet_time, debug_mode)
+    
+    def kick_response(self, nickname, channel, comment = ""):
+        return PluginKickResponse(nickname, channel, comment)
+    
+    def ban_response(self, mask, channel):
+        return PluginBanResponse(mask, channel)
+
+    def unban_response(self, mask, channel):
+        return PluginUnbanResponse(mask, channel)
     
     def process_tasks(self):
         for task_id in self._tasks.keys():
@@ -259,3 +306,39 @@ class BasePlugin(object):
             f = open(filename, 'w')
         f.write(time.strftime('%Y-%m-%d %H:%M:%S') + ' ' + msg + '\n')
         f.close()
+    
+    def _get_db_connection(self):
+        filename = os.path.join(os.getenv('HOME'), '.config', 'cinnabot', self._plugin_name + '.sqlite')
+        return sqlite3.connect(filename)
+    
+    def _get_db_version(self):
+        self._db_query("CREATE TABLE IF NOT EXISTS `global_data` (`key` TEXT PRIMARY KEY, `value` TEXT)")
+        res = self._db_query("SELECT `value` FROM `global_data` WHERE `key` = 'version'")
+        if res:
+            return int(res[0][0])
+        else:
+            return 0
+    
+    def _set_db_version(self, version):
+        self._db_query("REPLACE INTO `global_data` (`key`, `value`) VALUES ('version', ?)", (version,))
+    
+    def init_db(self, db_upgrades):
+        version = self._get_db_version()
+        upgrades = [i for i in db_upgrades if i > version]
+        if upgrades:
+            upgrades.sort()
+            for i in upgrades:
+                for sql in db_upgrades[i]:
+                    self._db_query(sql)
+            self._set_db_version(upgrades[-1])
+    
+    def _db_query(self, *args):
+        self._db_lock.acquire()
+        conn = self._get_db_connection()
+        cur = conn.cursor()
+        cur.execute(*args)
+        res = cur.fetchall()
+        cur.close()
+        conn.commit()
+        self._db_lock.release()
+        return res
