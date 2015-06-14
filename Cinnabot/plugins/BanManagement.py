@@ -65,16 +65,16 @@ class BanManagementPlugin(BasePlugin):
             value = duration[:-1]
             unit = duration[-1]
             if unit == "m":
-                endtime = datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, int(value))
+                endtime = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, int(value))
             elif unit == "h":
-                endtime = datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, 0, int(value))
+                endtime = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, int(value))
             elif unit == "d":
-                endtime = datetime.datetime.now() + datetime.timedelta(int(value))
+                endtime = datetime.datetime.utcnow() + datetime.timedelta(int(value))
             endtime = endtime.strftime("%Y-%m-%d %H:%M:%S")
         self._db_query("DELETE FROM `bans` WHERE `channel` = ? AND `mask` = ?", (channel, mask))
         self._db_query("""
             INSERT INTO `bans` (`mask`, `nickname`, `channel`, `from_op`, `ban_date`, `ban_expiration`, `comment`, `removed`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, nickname, channel, from_op, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), endtime, comment))
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, nickname, channel, from_op, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), endtime, comment))
         return [self.ban_response(mask, channel)]
     
     def _unban(self, mask, channel):
@@ -101,7 +101,7 @@ class BanManagementPlugin(BasePlugin):
     def _banlist(self, from_op, channel):
         res = []
         for ban in self._db_query("SELECT * FROM `bans` WHERE `removed` = 0 AND `channel` = ?", (channel,)):
-            res.append(self.notice_response(from_op.split("!")[0], "%s Banlist: \x0303%s -> %s\x0f \x0305%s %s\x0f (%s)" % (channel, ban[5], ban[6], ban[1], ban[4], ban[7])))
+            res.append(self.notice_response(from_op.split("!")[0], "%s Banlist: \x0303%s UTC -> %s UTC\x0f \x0305%s %s\x0f (%s)" % (channel, ban[5], ban[6], ban[1], ban[4], ban[7])))
         res.append(self.notice_response(from_op.split("!")[0], "%s :End of channel ban list" % (channel,)))
         return res
     
@@ -134,7 +134,7 @@ class BanManagementPlugin(BasePlugin):
                 self._start_task(self._banlist, source, target) 
     
     def _check_expired_bans(self):
-        for ban in self._db_query("SELECT * FROM `bans` WHERE `removed` = 0 AND `ban_expiration` != '' AND `ban_expiration` IS NOT NULL AND `ban_expiration` < ?", (str(datetime.datetime.now()),)):
+        for ban in self._db_query("SELECT * FROM `bans` WHERE `removed` = 0 AND `ban_expiration` != '' AND `ban_expiration` IS NOT NULL AND `ban_expiration` < ?", (str(datetime.datetime.utcnow()),)):
             self._start_task(self._unban, ban[1], ban[3])
             self._db_query("UPDATE `bans` SET `removed` = 1 WHERE ban_id = ?", (ban[0],))
     
@@ -142,7 +142,7 @@ class BanManagementPlugin(BasePlugin):
         if not self._db_query("SELECT * FROM `bans` WHERE `channel` = ? AND `mask` = ? AND removed = 0", (channel, mask)):
             self._db_query("""
                 INSERT INTO `bans` (`mask`, `nickname`, `channel`, `from_op`, `ban_date`, `ban_expiration`, `comment`, `removed`)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, "", channel, source.split("!")[0], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), (datetime.datetime.now() + datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S"), ""))
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, "", channel, source.split("!")[0], datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), (datetime.datetime.utcnow() + datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S"), ""))
     
     def process_irc_unban(self, source, channel, mask):
         self._db_query("UPDATE `bans` SET removed = 1 WHERE `channel` = ? AND `mask` = ?", (channel, mask))
