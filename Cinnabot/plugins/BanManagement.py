@@ -6,7 +6,9 @@ import logging
 import re
 import datetime
 
-CHANNEL_FLAGS_RE = re.compile("^[0-9]+\ +([a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)\ +\(\#([a-zA-Z0-9\\-\\_]+)\).*$")
+CHANNEL_FLAGS_RE = re.compile("^[0-9]+\ +(\!?[a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)\ +\(\#([a-zA-Z0-9\\-\\_]+)\).*$")
+GROUPS_FLAGS_RE = re.compile("^[0-9]+\ +([a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)$")
+END_GROUPS_FLAGS_RE = re.compile("^End of (\![a-zA-Z0-9_\[\]\|\^\`\-]+) FLAGS listing.$")
 
 USE_DB = True
 DB_UPGRADES = {
@@ -32,22 +34,53 @@ class BanManagementPlugin(BasePlugin):
         self._bot._irc.add_global_handler("privnotice", self._on_irc_notice)
         
         self._channels = self._get_config("channels").split(",")
+        self._current_loading_group = None
         self._load_operators_flags()
         
         bot._irc.execute_every(900, self._load_operators_flags)
         bot._irc.execute_every(60, self._check_expired_bans)
     
+    def _load_operator_groups(self):
+        if self._current_loading_group:
+            return
+        for i in self._operators_groups:
+            if self._operators_groups[i] == None:
+                self._operators_groups[i] = []
+                self._current_loading_group = i
+                self._bot._irc_server_connection.privmsg("GroupServ", "flags %s" % i)
+                return
+    
     def _on_irc_notice(self, server_connection, event):
         logging.info("BanManagementPlugin::_on_irc_notice:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+
         match = CHANNEL_FLAGS_RE.match(event.arguments[0])
         if match:
             username, flags, channel = match.groups()
             if "o" in flags or "O" in flags:
                 self._operators.setdefault("#" + channel, []).append(username)
+        for channel in self._operators:
+            for username in self._operators[channel]:
+                if username.startswith("!") and not username in self._operators_groups:
+                    self._operators_groups[username] = None
+                    self._load_operator_groups()
+        
+        match = GROUPS_FLAGS_RE.match(event.arguments[0])
+        if match:
+            username, flags = match.groups()
+            self._operators_groups[self._current_loading_group].append(username)
+            
+        match = END_GROUPS_FLAGS_RE.match(event.arguments[0])
+        if match:
+            group = match.groups()[0]
+            for i in self._operators:
+                if group in self._operators[i]:
+                    self._operators[i] += self._operators_groups[group]
+            self._current_loading_group = None
+            self._load_operator_groups()
             
     def _load_operators_flags(self):
         self._operators = {}
-        self._operators_real = {}
+        self._operators_groups = {}
         for i in self._channels:
             self._bot._irc_server_connection.privmsg("ChanServ", "flags %s" % i)
         
