@@ -175,9 +175,9 @@ class BanManagementPlugin(BasePlugin):
             max_len_channel = max(max_len_channel, len(i[3]))
             res.append({"type": "kick", "nick": i[2], "mask": i[1], "from_op": i[4], "date": i[5], "expiration": " "*len(i[5]), "comment": i[6], "channel": i[3]})
         res.sort(lambda a,b: cmp(a['date'], b['date']))
-        final_res = [self.notice_response(source.split("!")[0], "%-*s   %-*s   %-*s   %-*s   %s   %s   %s" % (5, "TYPE", max_len_channel + 1, "CHANNEL", max_len_nick + 1, "NICK", max_len_mask + 1, "MASK", max_len_from_op + 1, "OPERATOR", "DATE", "EXPIRATION", "COMMENT"))]
+        final_res = [self.notice_response(source.split("!")[0], "%-*s   %-*s   %-*s   %-*s   %-*s   %s   %s   %s" % (5, "TYPE", max_len_channel + 1, "CHANNEL", max_len_nick + 1, "NICK", max_len_mask + 1, "MASK", max_len_from_op + 1, "OPERATOR", "DATE", "EXPIRATION", "COMMENT"))]
         for i in res:
-            final_res.append(self.notice_response(source.split("!")[0], "%-*s   %-*s   %-*s   %-*s   %s   %s   %s" % (5, i["type"], max_len_channel + 1, i["channel"], max_len_nick + 1, i["nick"], max_len_mask + 1, i["mask"], max_len_from_op + 1, i["from_op"], i["date"], i["expiration"], i["comment"])))
+            final_res.append(self.notice_response(source.split("!")[0], "%-*s   %-*s   %-*s   %-*s   %-*s   %s   %s   %s" % (5, i["type"], max_len_channel + 1, i["channel"], max_len_nick + 1, i["nick"], max_len_mask + 1, i["mask"], max_len_from_op + 1, i["from_op"], i["date"], i["expiration"], i["comment"])))
         return final_res
     
     def _on_channel_message_user_identified(self, username, source, target, msg):
