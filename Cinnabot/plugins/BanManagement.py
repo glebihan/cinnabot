@@ -128,7 +128,7 @@ class BanManagementPlugin(BasePlugin):
         self._db_query("UPDATE `bans` SET `removed` = 1 WHERE `channel` = ? AND `mask` = ?", (channel, mask))
         return [self.unban_response(mask, channel)]
     
-    def _on_hostmask(self, hostmask, keep_mask, command, from_op, channel, duration, comment):
+    def _on_hostmask(self, hostmask, keep_mask, command, from_op, channel, duration, comment, source):
         nickname = hostmask.split("!")[0]
         if keep_mask:
             ban_mask = hostmask
@@ -144,6 +144,8 @@ class BanManagementPlugin(BasePlugin):
             self._start_task(self._ban, "m:" + ban_mask, nickname, channel, from_op, duration, comment)
         if command in ["!unmute"]:
             self._start_task(self._unban, "m:" + ban_mask, channel)
+        if command in ["!history"]:
+            self._start_task(self._history, source, nickname, ban_mask)
         
     def _banlist(self, from_op, channel):
         res = []
@@ -151,6 +153,29 @@ class BanManagementPlugin(BasePlugin):
             res.append(self.notice_response(from_op.split("!")[0], "%s Banlist: \x0303%s UTC -> %s UTC\x0f \x0305%s %s\x0f (%s)" % (channel, ban[5], ban[6], ban[1], ban[4], ban[7])))
         res.append(self.notice_response(from_op.split("!")[0], "%s :End of channel ban list" % (channel,)))
         return res
+    
+    def _history(self, source, nickname, mask):
+        bans = self._db_query("SELECT * FROM `bans` WHERE `mask` = ? OR nickname = ?", (mask, nickname))
+        kicks = self._db_query("SELECT * FROM `kick_history` WHERE `mask` = ? OR nickname = ?", (mask, nickname))
+        res = []
+        max_len_nick = 4
+        max_len_mask = 4
+        max_len_from_op = 8
+        for i in bans:
+            max_len_nick = max(max_len_nick, len(i[2]))
+            max_len_mask = max(max_len_mask, len(i[1]))
+            max_len_from_op = max(max_len_from_op, len(i[4]))
+            res.append({"type": "ban", "nick": i[2], "mask": i[1], "from_op": i[4], "date": i[5], "expiration": i[6], "comment": i[7]})
+        for i in kicks:
+            max_len_nick = max(max_len_nick, len(i[2]))
+            max_len_mask = max(max_len_mask, len(i[1]))
+            max_len_from_op = max(max_len_from_op, len(i[4]))
+            res.append({"type": "kick", "nick": i[2], "mask": i[1], "from_op": i[4], "date": i[5], "expiration": " "*len(i[5]), "comment": i[6]})
+        res.sort(lambda a,b: cmp(a['date'], b['date']))
+        final_res = [self.notice_response(source.split("!")[0], "%-*s   %-*s   %-*s   %-*s   %s   %s   %s" % (5, "TYPE", max_len_nick + 1, "NICK", max_len_mask + 1, "MASK", max_len_from_op + 1, "OPERATOR", "DATE", "EXPIRATION", "COMMENT"))]
+        for i in res:
+            final_res.append(self.notice_response(source.split("!")[0], "%-*s   %-*s   %-*s   %-*s   %s   %s   %s" % (5, i["type"], max_len_nick + 1, i["nick"], max_len_mask + 1, i["mask"], max_len_from_op + 1, i["from_op"], i["date"], i["expiration"], i["comment"])))
+        return final_res
     
     def _on_channel_message_user_identified(self, username, source, target, msg):
         if username and username in self._operators.setdefault(target, []):
@@ -160,25 +185,26 @@ class BanManagementPlugin(BasePlugin):
             words = msg.split()
             words[0] = words[0].lower()
             
-            if words[0] in ["!kick", "!ban", "!kickban", "!unban", "!mute", "!unmute"]:
+            if words[0] in ["!kick", "!ban", "!kickban", "!unban", "!mute", "!unmute", "!history"]:
                 nickname_or_mask = words[1]
                 comment = ""
                 duration = "1d"
-                if len(words) > 2:
-                    if words[0] == "!kick":
-                        comment = " ".join(words[2:])
-                    else:
-                        duration = words[2]
-                if len(words) > 3 and words[0] != "!kick":
-                    comment = " ".join(words[3:])
+                if words[0] != "!history":
+                    if len(words) > 2:
+                        if words[0] == "!kick":
+                            comment = " ".join(words[2:])
+                        else:
+                            duration = words[2]
+                    if len(words) > 3 and words[0] != "!kick":
+                        comment = " ".join(words[3:])
                 
                 if "@" in nickname_or_mask:
-                    self._on_hostmask(nickname_or_mask, True, words[0], username, target, duration, comment)
+                    self._on_hostmask(nickname_or_mask, True, words[0], username, target, duration, comment, source)
                 else:
-                    self._bot._get_user_hostmask(nickname_or_mask, self._on_hostmask, False, words[0], username, target, duration, comment)
+                    self._bot._get_user_hostmask(nickname_or_mask, self._on_hostmask, False, words[0], username, target, duration, comment, source)
             
             if words[0] == "!banlist":
-                self._start_task(self._banlist, source, target) 
+                self._start_task(self._banlist, source, target)
     
     def _check_expired_bans(self):
         for ban in self._db_query("SELECT * FROM `bans` WHERE `removed` = 0 AND `ban_expiration` != '' AND `ban_expiration` IS NOT NULL AND `ban_expiration` < ?", (str(datetime.datetime.utcnow()),)):
