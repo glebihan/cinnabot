@@ -24,6 +24,17 @@ DB_UPGRADES = {
             `comment` TEXT,
             `removed` BOOLEAN
         )"""
+    ],
+    2: [
+        """CREATE TABLE IF NOT EXISTS `kick_history` (
+            `kick_id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `mask` TEXT,
+            `nickname` TEXT,
+            `channel` TEXT,
+            `from_op` TEXT,
+            `date` TEXT,
+            `comment` TEXT
+        )"""
     ]
 }
 
@@ -87,7 +98,10 @@ class BanManagementPlugin(BasePlugin):
     def process_channel_message(self, source, target, msg):
         self._bot._identify_user(source, self._on_channel_message_user_identified, source, target, msg)
     
-    def _kick(self, nickname, channel, comment):
+    def _kick(self, mask, nickname, channel, from_op, comment):
+        self._db_query("""
+            INSERT INTO `kick_history` (`mask`, `nickname`, `channel`, `from_op`, `date`, `comment`)
+            VALUES (?, ?, ?, ?, ?, ?)""", (mask, nickname, channel, from_op, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), comment))
         return [self.kick_response(nickname, channel, comment)]
     
     def _ban(self, mask, nickname, channel, from_op, duration, comment):
@@ -121,7 +135,7 @@ class BanManagementPlugin(BasePlugin):
         else:
             ban_mask = "*!*@" + hostmask.split("@")[1]
         if command in ["!kick", "!kickban"]:
-            self._start_task(self._kick, nickname, channel, comment)
+            self._start_task(self._kick, ban_mask, nickname, channel, from_op, comment)
         if command in ["!ban", "!kickban"]:
             self._start_task(self._ban, ban_mask, nickname, channel, from_op, duration, comment)
         if command in ["!unban"]:
