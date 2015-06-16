@@ -231,3 +231,11 @@ class BanManagementPlugin(BasePlugin):
         words[0] = words[0].lower()
         if username and words[0] == "banlist" and username in self._operators.setdefault(words[1], []):
             self._start_task(self._banlist, source, words[1])
+        all_operators = []
+        for i in self._operators:
+            all_operators += self._operators[i]
+        if username and words[0] == "history" and username in all_operators:
+            if "@" in words[1]:
+                self._on_hostmask(words[1], True, words[0], username, target, "1d", "", source)
+            else:
+                self._bot._get_user_hostmask(words[1], self._on_hostmask, False, "!" + words[0], username, target, "1d", "", source)
