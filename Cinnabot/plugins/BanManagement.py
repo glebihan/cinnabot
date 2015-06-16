@@ -155,7 +155,7 @@ class BanManagementPlugin(BasePlugin):
         return res
     
     def _history(self, source, nickname, mask):
-        bans = self._db_query("SELECT * FROM `bans` WHERE `mask` = ? OR nickname = ?", (mask, nickname))
+        bans = self._db_query("SELECT * FROM `bans` WHERE `mask` = ? OR `mask` = ? OR nickname = ?", (mask, "m:" + mask, nickname))
         kicks = self._db_query("SELECT * FROM `kick_history` WHERE `mask` = ? OR nickname = ?", (mask, nickname))
         res = []
         max_len_nick = 4
