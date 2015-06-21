@@ -60,7 +60,7 @@ class PluginBanResponse(PluginResponse):
         self._channel = channel
     
     def process(self, irc, irc_server_connection):
-        irc_server_connection.privmsg("ChanServ", "ban %s %s" % (self._channel, self._target))
+        irc_server_connection.mode(self._channel, "+b %s" % self._target)
 
 class PluginUnbanResponse(PluginResponse):
     def __init__(self, target, channel):
@@ -68,7 +68,7 @@ class PluginUnbanResponse(PluginResponse):
         self._channel = channel
     
     def process(self, irc, irc_server_connection):
-        irc_server_connection.privmsg("ChanServ", "unban %s %s" % (self._channel, self._target))
+        irc_server_connection.mode(self._channel, "-b %s" % self._target)
 
 class TimedQuietResponse(PluginResponse):
     def __init__(self, plugin, channel, user, quiet_time, debug_mode):
