@@ -126,7 +126,7 @@ class MintDocPlugin(BasePlugin):
             for word in data[url]:
                 query_params += [url, word, data[url][word]]
         while query_params:
-            cur_query_params, query_params = query_params[:300], query_params[300:]
+            cur_query_params, query_params = query_params[:3], query_params[3:]
             self._db_query("INSERT INTO `index` (`url`, `word`, `score`) VALUES " + ", ".join(["(?, ?, ?)"] * (len(cur_query_params) / 3)), cur_query_params)
         
         res = []
