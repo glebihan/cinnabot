@@ -427,6 +427,13 @@ class Cinnabot(object):
             if event.target.startswith("#") and event.target in plugin.get_channels():
                 plugin.handle_channel_part(event.source, event.target)
     
+    def _on_irc_kick(self, server_connection, event):
+        logging.info("_on_irc_kick:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
+        
+        for plugin in self._plugins.values():
+            if event.target.startswith("#") and event.target in plugin.get_channels() and event.type == "kick":
+                plugin.handle_irc_kick(event.source, event.target, event.arguments[0], event.arguments[1])
+        
     def _on_irc_mode(self, server_connection, event):
         logging.info("_on_irc_mode:" + event.source + ":" + event.target + ":" + event.type + ":" + str(event.arguments))
         
@@ -467,6 +474,7 @@ class Cinnabot(object):
         self._irc.add_global_handler("join", self._on_irc_join)
         self._irc.add_global_handler("part", self._on_irc_part)
         self._irc.add_global_handler("mode", self._on_irc_mode)
+        self._irc.add_global_handler("kick", self._on_irc_kick)
         self._irc_server_connection = self._irc.server()
         self._irc_server_connection.buffer_class.errors = 'replace'
         self._irc_server_connection.connect(

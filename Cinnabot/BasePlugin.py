@@ -230,6 +230,12 @@ class BasePlugin(object):
         
         if hasattr(self, "process_channel_part"):
             self._start_task(self.process_channel_part, source, target)
+        
+    def handle_irc_kick(self, source, target, nickname, comment):
+        logging.info("plugin_handle_irc_kick:" + self._plugin_name + ":" + source + ":" + target + ":" + nickname + ":" + comment)
+        
+        if hasattr(self, "process_irc_kick"):
+            self._start_task(self.process_irc_kick, source, target, nickname, comment)
             
     def handle_irc_ban(self, source, target, mask):
         logging.info("plugin_handle_irc_ban:" + self._plugin_name + ":" + source + ":" + target + ":" + mask)
