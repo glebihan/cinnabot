@@ -221,7 +221,8 @@ class BanManagementPlugin(BasePlugin):
                 VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, "", channel, source.split("!")[0], datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), (datetime.datetime.utcnow() + datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S"), ""))
     
     def process_irc_kick(self, source, channel, nickname, comment):
-        self._bot._get_user_hostmask(nickname, self._on_hostmask, False, "!kick", source.split("!")[0], channel, "1d", comment, source)
+        if source.split("!")[0] != self._bot._irc_server_connection.get_nickname():
+            self._bot._get_user_hostmask(nickname, self._on_hostmask, False, "!kick", source.split("!")[0], channel, "1d", comment, source)
         
     def process_irc_unban(self, source, channel, mask):
         self._db_query("UPDATE `bans` SET removed = 1 WHERE `channel` = ? AND `mask` = ?", (channel, mask))
