@@ -56,7 +56,9 @@ class GitHubWebHookPlugin(BasePlugin):
         res = []
         sentence = "\x0f[\x0313%(repository)s\x0f] \x0315%(sender)s\x0f opened pull request #%(number)d: %(title)s (\x0306%(base)s...%(head)s\x0f) \x0302\x1f%(url)s\x0f"
         title = postdata['pull_request']['title'].replace("\n", " ").replace("\r", " ")
-        if len(title) > 70:
+        if u"\u2026" in title:
+            title = title.split(u"\u2026")[0] + "..."
+        elif len(title) > 70:
             title = title[:67] + "..."
         data = {
             'repository': postdata['repository']['name'],
