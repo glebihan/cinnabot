@@ -18,7 +18,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         self._start_task(self._do_check_releases, "thunderbird")
         self._start_task(self._do_check_releases, "virtualbox")
         self._start_task(self._do_check_releases, "flash")
-        self._start_task(self._do_check_releases, "hplip")
+        #~ self._start_task(self._do_check_releases, "hplip")
     
     def _do_check_releases(self, package):
         version_list = []
