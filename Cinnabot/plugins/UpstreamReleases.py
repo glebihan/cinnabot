@@ -4,7 +4,21 @@
 from Cinnabot.BasePlugin import BasePlugin
 import logging
 import httplib2
+import re
 from distutils.version import LooseVersion
+
+USE_DB = True
+DB_UPGRADES = {
+    1: [
+        """CREATE TABLE IF NOT EXISTS `ignores` (
+            `ignore_id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `package` TEXT,
+            `version` TEXT
+        )"""
+    ]
+}
+
+IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ *version\\ *([0-9\.\-a-z]+)\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
@@ -21,6 +35,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         #~ self._start_task(self._do_check_releases, "hplip")
     
     def _do_check_releases(self, package):
+        ignore_versions = [v[2] for v in self._db_query("SELECT * FROM `ignores` WHERE `package` = ?", (package,))]
         version_list = []
         c = httplib2.Http()
         if package == "virtualbox":
@@ -112,9 +127,15 @@ class UpstreamReleasesPlugin(BasePlugin):
         if current_version == None:
             raise Exception("Could not load current version for %s" % package)
         
-        if LooseVersion(last_version) > LooseVersion(current_version):
+        if last_version not in ignore_versions and LooseVersion(last_version) > LooseVersion(current_version):
             res = []
             warn_users = self._get_config("warn_users").split(",")
             for u in warn_users:
                 res.append(self.privmsg_response(u, "New upstream release of %s %s" % (package, last_version)))
             return res
+    
+    def process_privmsg(self, from_username, source, target, msg):
+        if from_username in self._get_config("warn_users").split(","):
+            match = IGNORE_COMMAND_RE.match(msg)
+            if match:
+                self._db_query("INSERT INTO `ignores` (`package`, `version`) VALUES (?, ?)", match.groups())
