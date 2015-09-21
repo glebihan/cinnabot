@@ -18,7 +18,8 @@ DB_UPGRADES = {
     ]
 }
 
-IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ *version\\ *([0-9\.\-a-z]+)\\ *$")
+IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ *([0-9\.\-a-z]+)\\ *$")
+IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
@@ -139,3 +140,9 @@ class UpstreamReleasesPlugin(BasePlugin):
             match = IGNORE_COMMAND_RE.match(msg)
             if match:
                 self._db_query("INSERT INTO `ignores` (`package`, `version`) VALUES (?, ?)", match.groups())
+            match = IGNORED_COMMAND_RE.match(msg)
+            if match:
+                res = []
+                for package, version in self._db_query("SELECT `package`, `version` FROM `ignores`"):
+                    res.append(self.privmsg_response(source.split("!")[0], "%s %s" % (package, version)))
+                return res
