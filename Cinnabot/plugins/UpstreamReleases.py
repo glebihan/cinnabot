@@ -18,7 +18,7 @@ DB_UPGRADES = {
     ]
 }
 
-IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ *([0-9\.\-a-z]+)\\ *$")
+IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ +([0-9\.\-a-z]+)\\ *$")
 IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
