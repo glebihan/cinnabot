@@ -19,6 +19,7 @@ DB_UPGRADES = {
 }
 
 IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ +([0-9\.\-a-z]+)\\ *$")
+DEIGNORE_COMMAND_RE = re.compile("^\\ *deignore\\ *([a-z]+)\\ +([0-9\.\-a-z]+)\\ *$")
 IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
@@ -140,6 +141,9 @@ class UpstreamReleasesPlugin(BasePlugin):
             match = IGNORE_COMMAND_RE.match(msg)
             if match:
                 self._db_query("INSERT INTO `ignores` (`package`, `version`) VALUES (?, ?)", match.groups())
+            match = DEIGNORE_COMMAND_RE.match(msg)
+            if match:
+                self._db_query("DELETE FROM `ignores` WHERE `package` = ? AND `version` = ?", match.groups())
             match = IGNORED_COMMAND_RE.match(msg)
             if match:
                 res = []
