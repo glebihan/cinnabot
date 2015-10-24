@@ -67,7 +67,7 @@ class UpstreamReleasesPlugin(BasePlugin):
                         version = release.split("href=\"")[1].split("/\"")[0]
                     else:
                         version = release.split("<a href=\"")[1].split("/\"")[0]
-                    if package == "hplip":
+                    if package in ["hplip", "firefox", "thunderbird"]:
                         version = version.split("/")[-1]
                     if version[0] in "0123456789" and not "esr" in version and not "b" in version and not "RC" in version and not "BETA" in version and not "funnelcake" in version:
                         version_list.append(version)
