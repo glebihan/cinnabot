@@ -8,6 +8,7 @@ import json
 import re
 import httplib2
 import BaseHTTPServer
+import os
 import _codecs
 
 class GitHubWebHookPluginServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -36,7 +37,28 @@ class GitHubWebHookPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
         
-        self._start_task(self._run_server)
+        #~ self._start_task(self._run_server)
+        bot._irc.execute_every(5, self._check_webhook_queue)
+    
+    def _check_webhook_queue(self):
+        path = os.path.join(os.getenv("HOME"), ".config", "cinnabot", "github_webhook_queue")
+        files = os.listdir(path)
+        while len(files):
+            filename = os.path.join(path, files.pop())
+            try:
+                f = open(filename)
+                postdata = json.loads(f.read())
+                f.close()
+                if "commits" in postdata:
+                    self._start_task(self.handle_commits, postdata)
+                elif "pull_request" in postdata and "action" in postdata and postdata["action"] == "opened":
+                    self._start_task(self.handle_open_pull_request, postdata)
+            except:
+                pass
+            try:
+                os.unlink(filename)
+            except:
+                pass
     
     def _shorten_url(self, url):
         try:
