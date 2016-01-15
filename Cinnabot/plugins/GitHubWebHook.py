@@ -63,7 +63,7 @@ class GitHubWebHookPlugin(BasePlugin):
     def _shorten_url(self, url):
         try:
             c = httplib2.Http()
-            resp, content = c.request("http://git.io", "POST", headers = {"Content-Type": "multipart/form-data"}, body = urllib.urlencode({'url': url}))
+            resp, content = c.request("https://git.io", "POST", headers = {"Content-Type": "multipart/form-data"}, body = urllib.urlencode({'url': url}))
             res = resp['location']
         except:
             res = url
