@@ -27,9 +27,9 @@ class CommunityRegistrationPlugin(BasePlugin):
     def _do_change_code(self):
         new_code = '-'.join([''.join(random.sample('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 4)) for i in range(4)])
         data = {'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'}
-        content = requests.post("https://community.linuxmint.com/auth/login", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, data = data).text
+        content = requests.post("https://community.linuxmint.com/auth/login", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, data = data, verify = False).text
         data = {'search': "Change code", 'passcode': new_code}
-        requests.post("https://community.linuxmint.com/user/change_registration_passcode", headers = {'Content-type' : 'application/x-www-form-urlencoded', 'Cookie' : resp["set-cookie"]}, data = data)
+        requests.post("https://community.linuxmint.com/user/change_registration_passcode", headers = {'Content-type' : 'application/x-www-form-urlencoded', 'Cookie' : resp["set-cookie"]}, data = data, verify = False)
             
     def get_cookies_str(self, cookies):
         cookies_array = []
@@ -48,8 +48,8 @@ class CommunityRegistrationPlugin(BasePlugin):
     
     def _retrieve_code(self):
         data = {'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'}
-        res = requests.post("https://community.linuxmint.com/auth/login", data = data, allow_redirects = False)
-        content = requests.get("https://community.linuxmint.com/user/moderators", cookies = {"ci_session": res.cookies["ci_session"], "sucuric_prtmpcb": res.cookies["sucuric_prtmpcb"]}).text
+        res = requests.post("https://community.linuxmint.com/auth/login", data = data, allow_redirects = False, verify = False)
+        content = requests.get("https://community.linuxmint.com/user/moderators", cookies = {"ci_session": res.cookies["ci_session"], "sucuric_prtmpcb": res.cookies["sucuric_prtmpcb"]}, verify = False).text
         
         search_str = "<input type=\"text\" name=\"passcode\" value=\""
         i = content.index(search_str)
