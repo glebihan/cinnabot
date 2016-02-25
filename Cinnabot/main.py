@@ -106,6 +106,7 @@ class Cinnabot(object):
             self._allowed_semi_admin_commands = []
     
     def send_warn_privmsg(self, msg):
+        return
         if self.config.has_option("General", "send_log_to"):
             self._irc_server_connection.privmsg(self.config.get("General", "send_log_to"), u"\x0305\x02" + msg + u"\x0f")
     

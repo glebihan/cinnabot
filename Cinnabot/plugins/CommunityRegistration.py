@@ -4,7 +4,7 @@
 from Cinnabot.BasePlugin import BasePlugin
 import time
 import urllib
-import httplib2
+import requests
 import random
 
 class CommunityRegistrationPlugin(BasePlugin):
@@ -26,11 +26,10 @@ class CommunityRegistrationPlugin(BasePlugin):
     
     def _do_change_code(self):
         new_code = '-'.join([''.join(random.sample('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 4)) for i in range(4)])
-        http = httplib2.Http()
-        data = urllib.urlencode({'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'})
-        resp, content = http.request("http://community.linuxmint.com/auth/login", "POST", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, body = data)
-        data = urllib.urlencode({'search': "Change code", 'passcode': new_code})
-        http.request("http://community.linuxmint.com/user/change_registration_passcode", "POST", headers = {'Content-type' : 'application/x-www-form-urlencoded', 'Cookie' : resp["set-cookie"]}, body = data)
+        data = {'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'}
+        content = requests.post("https://community.linuxmint.com/auth/login", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, data = data).text
+        data = {'search': "Change code", 'passcode': new_code}
+        requests.post("https://community.linuxmint.com/user/change_registration_passcode", headers = {'Content-type' : 'application/x-www-form-urlencoded', 'Cookie' : resp["set-cookie"]}, data = data)
             
     def get_cookies_str(self, cookies):
         cookies_array = []
@@ -48,10 +47,9 @@ class CommunityRegistrationPlugin(BasePlugin):
         return cookies_array
     
     def _retrieve_code(self):
-        http = httplib2.Http()
-        data = urllib.urlencode({'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'})
-        resp, content = http.request("http://community.linuxmint.com/auth/login", "POST", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, body = data)
-        resp, content = http.request("http://community.linuxmint.com/user/moderators", "GET", headers = {'Cookie' : resp["set-cookie"]})
+        data = {'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'}
+        res = requests.post("https://community.linuxmint.com/auth/login", data = data, allow_redirects = False)
+        content = requests.get("https://community.linuxmint.com/user/moderators", cookies = {"ci_session": res.cookies["ci_session"], "sucuric_prtmpcb": res.cookies["sucuric_prtmpcb"]}).text
         
         search_str = "<input type=\"text\" name=\"passcode\" value=\""
         i = content.index(search_str)
