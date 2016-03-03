@@ -49,7 +49,10 @@ class CommunityRegistrationPlugin(BasePlugin):
     def _retrieve_code(self):
         data = {'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'}
         res = requests.post("https://community.linuxmint.com/auth/login", data = data, allow_redirects = False, verify = False)
-        content = requests.get("https://community.linuxmint.com/user/moderators", cookies = {"ci_session": res.cookies["ci_session"], "sucuric_prtmpcb": res.cookies["sucuric_prtmpcb"]}, verify = False).text
+        cookies = {}
+        for i in res.cookies:
+            cookies[i.name] = i.value
+        content = requests.get("https://community.linuxmint.com/user/moderators", cookies = cookies, verify = False).text
         
         search_str = "<input type=\"text\" name=\"passcode\" value=\""
         i = content.index(search_str)
