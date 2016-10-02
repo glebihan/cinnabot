@@ -67,7 +67,7 @@ class BanManagementPlugin(BasePlugin):
         match = CHANNEL_FLAGS_RE.match(event.arguments[0])
         if match:
             username, flags, channel = match.groups()
-            if "o" in flags or "O" in flags:
+            if "o" in flags or "O" in flags or "h" in flags or "H" in flags:
                 self._operators.setdefault("#" + channel, []).append(username)
         for channel in self._operators:
             for username in self._operators[channel]:
