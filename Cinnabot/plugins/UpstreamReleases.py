@@ -15,12 +15,31 @@ DB_UPGRADES = {
             `package` TEXT,
             `version` TEXT
         )"""
+    ],
+    2: [
+        """ CREATE TABLE IF NOT EXISTS `pins` (
+            `pin_id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `target` TEXT,
+            `package` TEXT,
+            `username` TEXT
+        )"""
+    ],
+    3: [
+        """ CREATE TABLE IF NOT EXISTS `pins_ignores` (
+            `ignore_id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `package` TEXT,
+            `version` TEXT,
+            `username` TEXT
+        )"""
     ]
 }
 
-IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([a-z]+)\\ +([0-9\.\-a-z]+)\\ *$")
-DEIGNORE_COMMAND_RE = re.compile("^\\ *deignore\\ *([a-z]+)\\ +([0-9\.\-a-z]+)\\ *$")
+IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:]+)\\ *$")
+DEIGNORE_COMMAND_RE = re.compile("^\\ *deignore\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:]+)\\ *$")
 IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
+
+ADD_PIN_COMMAND_RE = re.compile("^\\ *add\\ +pin\\ +([a-z]+)\\ +([0-9a-z\-\.\_]+)\\ *$")
+PINS_COMMAND_RE = re.compile("^\\ *pins\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
@@ -28,13 +47,31 @@ class UpstreamReleasesPlugin(BasePlugin):
                 
         bot._irc.execute_every(3600, self._check_releases)
         self._check_releases()
-    
+            
     def _check_releases(self):
         self._start_task(self._do_check_releases, "firefox")
         self._start_task(self._do_check_releases, "thunderbird")
         self._start_task(self._do_check_releases, "virtualbox")
         self._start_task(self._do_check_releases, "flash")
         #~ self._start_task(self._do_check_releases, "hplip")
+        self._start_task(self._check_pin_releases)
+    
+    def _check_pin_releases(self):
+        res = []
+        
+        c = httplib2.Http()
+        for pin_id, target, package, username in self._db_query("SELECT * FROM `pins`"):
+            ignored_versions = [i[0] for i in self._db_query("SELECT version FROM pins_ignores WHERE package = ? AND username = ?", (package, username))]
+            last_version = None
+            for url in ["http://packages.ubuntu.com/%s/%s" % (target, package), "http://packages.ubuntu.com/%s-updates/%s" % (target, package)]:
+                resp, content = c.request(url)
+                version = content.split('id="screenshot"')[1].split('img src="')[1].split('"')[0].split('/')[-1]
+                if last_version is None or LooseVersion(version) > LooseVersion(last_version):
+                    last_version = version
+            if last_version is not None and not last_version in ignored_versions:
+                res.append(self.privmsg_response(username, "New %s release of %s %s" % (target, package, last_version)))
+        
+        return res
     
     def _do_check_releases(self, package):
         ignore_versions = [v[2] for v in self._db_query("SELECT * FROM `ignores` WHERE `package` = ?", (package,))]
@@ -144,12 +181,29 @@ class UpstreamReleasesPlugin(BasePlugin):
             match = IGNORE_COMMAND_RE.match(msg)
             if match:
                 self._db_query("INSERT INTO `ignores` (`package`, `version`) VALUES (?, ?)", match.groups())
+            
             match = DEIGNORE_COMMAND_RE.match(msg)
             if match:
                 self._db_query("DELETE FROM `ignores` WHERE `package` = ? AND `version` = ?", match.groups())
+            
             match = IGNORED_COMMAND_RE.match(msg)
             if match:
                 res = []
                 for package, version in self._db_query("SELECT `package`, `version` FROM `ignores`"):
                     res.append(self.privmsg_response(source.split("!")[0], "%s %s" % (package, version)))
                 return res
+            
+        match = PINS_COMMAND_RE.match(msg)
+        if match:
+            res = []
+            for target, package in self._db_query("SELECT target, package FROM pins WHERE username = ?", (source.split('!')[0],)):
+                res.append(self.privmsg_response(source.split("!")[0], "%s %s" % (target, package)))
+            return res
+            
+        match = ADD_PIN_COMMAND_RE.match(msg)
+        if match:
+            self._db_query("INSERT INTO `pins` (`target`, `package`, `username`) VALUES (?, ?, ?)", match.groups() + (source.split('!')[0],))
+        
+        match = IGNORE_COMMAND_RE.match(msg)
+        if match:
+            self._db_query("INSERT INTO `pins_ignores` (`package`, `version`, `username`) VALUES (?, ?, ?)", match.groups() + (source.split('!')[0],))
