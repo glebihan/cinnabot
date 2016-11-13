@@ -37,7 +37,7 @@ class GitHubWebHookPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
         
-        #~ self._start_task(self._run_server)
+        self._start_task(self._run_server)
         bot._irc.execute_every(5, self._check_webhook_queue)
     
     def _check_webhook_queue(self):
