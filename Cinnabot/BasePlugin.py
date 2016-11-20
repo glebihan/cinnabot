@@ -135,6 +135,9 @@ class BasePlugin(object):
         self.muted_hosts = {}
         self._db_lock = threading.Lock()
     
+    def get_help(self):
+        return {}
+    
     def unload(self):
         pass
     

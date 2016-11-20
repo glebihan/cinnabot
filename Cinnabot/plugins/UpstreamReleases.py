@@ -48,6 +48,34 @@ class UpstreamReleasesPlugin(BasePlugin):
                 
         bot._irc.execute_every(3600, self._check_releases)
         self._check_releases()
+    
+    def get_help(self):
+        return {
+            "ignore": {
+                "syntax": "ignore <package> <version>",
+                "description": "Ignore a specific upstream version of a package"
+            },
+            "deignore": {
+                "syntax": "deignore <package> <version>",
+                "description": "Stop ignoring a specific upstream version of a package"
+            },
+            "ignored": {
+                "syntax": "ignored",
+                "description": "List ignored upstream versions"
+            },
+            "add pin": {
+                "syntax": "add pin <release> <package>",
+                "description": "Receive notifications about versions of a given package in the repositories of the given Ubuntu release"
+            },
+            "ignore pin": {
+                "syntax": "ignore pin <package> <version>",
+                "description": "Don't receive notifications about a specific version of a package"
+            },
+            "pins": {
+                "syntax": "pins",
+                "description": "List pinned packages and ignored versions for those pins"
+            }
+        }
             
     def _check_releases(self):
         self._start_task(self._do_check_releases, "firefox")

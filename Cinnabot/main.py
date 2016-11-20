@@ -10,6 +10,7 @@ import re
 import sys
 import imp
 import subprocess
+from BasePlugin import PluginPrivmsgResponse
 
 DEBUG_LEVELS = {
    0: logging.FATAL,
@@ -32,6 +33,8 @@ ADMIN_COMMANDS_RE = {
     "^\\ *load plugin(\\ +[a-zA-Z]+)\\ *$": "load_plugin",
     "^\\ *unload plugin(\\ +[a-zA-Z]+)\\ *$": "unload_plugin"
 }
+
+HELP_COMMAND_RE = "^\\ *help(\\ +([a-zA-Z\ ]+))?\\ *$"
 
 class CustomLogHandler(logging.StreamHandler):
     def __init__(self, bot):
@@ -60,6 +63,7 @@ class Cinnabot(object):
             self._admin_commands[re.compile(regexp)] = getattr(self, "_admin_" + ADMIN_COMMANDS_RE[regexp])
             if ADMIN_COMMANDS_RE[regexp] in self._allowed_semi_admin_commands:
                 self._semi_admin_commands[re.compile(regexp)] = self._admin_commands[re.compile(regexp)]
+        self._help_command = re.compile(HELP_COMMAND_RE)
         
         self._is_saving_channels = False
         
@@ -171,6 +175,8 @@ class Cinnabot(object):
                 if self.config.getboolean(section, "enabled"):
                     plugin_name = section[7:]
                     self._load_plugin(plugin_name)
+        
+        self._load_help()
     
     def _is_admin(self, username):
         return username != "" and username in self._admin_usernames
@@ -230,6 +236,9 @@ class Cinnabot(object):
             if from_semi_admin:
                 if self._try_semi_admin_command(source, target, msg):
                     return
+        
+        if self._try_help_command(source, target, msg):
+            return
         
         for plugin in self._plugins.values():
             if (from_admin or not plugin.need_admin()) and plugin.check_permission(from_username):
@@ -293,6 +302,28 @@ class Cinnabot(object):
         
         self._load_config()
         self._load_plugins()
+    
+    def _load_help(self):
+        self._help = {}
+        for plugin in self._plugins.values():
+            plugin_help = plugin.get_help()
+            for command in plugin_help:
+                self._help[command] = plugin_help[command]
+    
+    def _try_help_command(self, source, target, command):
+        logging.info("_try_help_command:" + source + ":" + target + ":" + command)
+        
+        match_data = self._help_command.match(command)
+        if match_data:
+            plugin_command = match_data.groups()[1]
+            if plugin_command is None:
+                response = PluginPrivmsgResponse(source.split('!')[0], "Commands: \"" + "\", \"".join(self._help.keys()) + "\"")
+                response.process(self._irc, self._irc_server_connection)
+            elif plugin_command in self._help:
+                response = PluginPrivmsgResponse(source.split('!')[0], self._help[plugin_command]["description"])
+                response.process(self._irc, self._irc_server_connection)
+                response = PluginPrivmsgResponse(source.split('!')[0], "Usage: " + self._help[plugin_command]["syntax"])
+                response.process(self._irc, self._irc_server_connection)
     
     def _try_admin_command(self, source, target, command):
         logging.info("_try_admin_command:" + source + ":" + target + ":" + command)
