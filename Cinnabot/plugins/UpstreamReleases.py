@@ -39,6 +39,7 @@ DEIGNORE_COMMAND_RE = re.compile("^\\ *deignore\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\
 IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
 
 ADD_PIN_COMMAND_RE = re.compile("^\\ *add\\ +pin\\ +([a-z]+)\\ +([0-9a-z\-\.\_]+)\\ *$")
+IGNORE_PIN_COMMAND_RE = re.compile("^\\ *ignore\\ +pin\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:\+]+)\\ *$")
 PINS_COMMAND_RE = re.compile("^\\ *pins\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
@@ -199,14 +200,18 @@ class UpstreamReleasesPlugin(BasePlugin):
         match = PINS_COMMAND_RE.match(msg)
         if match:
             res = []
+            res.append(self.privmsg_response(source.split("!")[0], "PINNED PACKAGES :"))
             for target, package in self._db_query("SELECT target, package FROM pins WHERE username = ?", (source.split('!')[0],)):
                 res.append(self.privmsg_response(source.split("!")[0], "%s %s" % (target, package)))
+            res.append(self.privmsg_response(source.split("!")[0], "IGNORED VERSIONS :"))
+            for package, version in self._db_query("SELECT package, version FROM pins_ignores WHERE username = ? ORDER BY package ASC, ignore_id DESC", (source.split('!')[0],)):
+                res.append(self.privmsg_response(source.split("!")[0], "%s %s" % (package, version)))
             return res
             
         match = ADD_PIN_COMMAND_RE.match(msg)
         if match:
             self._db_query("INSERT INTO `pins` (`target`, `package`, `username`) VALUES (?, ?, ?)", match.groups() + (source.split('!')[0],))
         
-        match = IGNORE_COMMAND_RE.match(msg)
+        match = IGNORE_PIN_COMMAND_RE.match(msg)
         if match:
             self._db_query("INSERT INTO `pins_ignores` (`package`, `version`, `username`) VALUES (?, ?, ?)", match.groups() + (source.split('!')[0],))
