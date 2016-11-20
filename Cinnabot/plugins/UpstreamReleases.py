@@ -64,10 +64,13 @@ class UpstreamReleasesPlugin(BasePlugin):
             ignored_versions = [i[0] for i in self._db_query("SELECT version FROM pins_ignores WHERE package = ? AND username = ?", (package, username))]
             last_version = None
             for url in ["http://packages.ubuntu.com/%s/%s" % (target, package), "http://packages.ubuntu.com/%s-updates/%s" % (target, package)]:
-                resp, content = c.request(url)
-                version = content.split('id="screenshot"')[1].split('img src="')[1].split('"')[0].split('/')[-1]
-                if last_version is None or LooseVersion(version) > LooseVersion(last_version):
-                    last_version = version
+                try:
+                    resp, content = c.request(url)
+                    version = content.split('id="screenshot"')[1].split('img src="')[1].split('"')[0].split('/')[-1]
+                    if last_version is None or LooseVersion(version) > LooseVersion(last_version):
+                        last_version = version
+                except:
+                    pass
             if last_version is not None and not last_version in ignored_versions:
                 res.append(self.privmsg_response(username, "New %s release of %s %s" % (target, package, last_version)))
         
