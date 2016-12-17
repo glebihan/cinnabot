@@ -181,7 +181,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         else:
             version_list = []
             if package == "flash":
-                mint_package = "mint-flashplugin-11"
+                mint_package = "mint-flashplugin-14"
             else:
                 mint_package = package
             current_versions_link = "http://chicago.linuxmint.com/pool/import/%s/%s/" % (mint_package[0], mint_package)
