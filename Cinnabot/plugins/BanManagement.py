@@ -35,6 +35,11 @@ DB_UPGRADES = {
             `date` TEXT,
             `comment` TEXT
         )"""
+    ],
+    3: [
+        """CREATE TABLE IF NOT EXISTS `badwords` (
+            `badword` TEXT
+        )"""
     ]
 }
 
@@ -94,9 +99,22 @@ class BanManagementPlugin(BasePlugin):
         self._operators_groups = {}
         for i in self._channels:
             self._bot._irc_server_connection.privmsg("ChanServ", "flags %s" % i)
+    
+    def _get_badwords(self):
+        if not hasattr(self, '_badwords'):
+            self._badwords = [i[0].lower() for i in self._db_query("SELECT * FROM `badwords`")]
+        return self._badwords
+    badwords = property(_get_badwords)
         
     def process_channel_message(self, source, target, msg):
         self._bot._identify_user(source, self._on_channel_message_user_identified, source, target, msg)
+        
+        autoban_from_mask = self._get_config('autoban_from_mask')
+        words = [i.strip().lower() for i in msg.split(' ') if i.strip() != '']
+        for badword in self.badwords:
+            if badword in words:
+                for channel in self._channels:
+                    self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
     
     def _kick(self, mask, nickname, channel, from_op, comment):
         self._db_query("""
@@ -230,6 +248,9 @@ class BanManagementPlugin(BasePlugin):
     def process_privmsg(self, from_username, source, target, msg):
         self._bot._identify_user(source, self._on_privmsg_user_identified, source, target, msg)
     
+    def _send_badwords(self, username, source, target, msg):
+        return [self.privmsg_response(username, ', '.join(self.badwords))]
+    
     def _on_privmsg_user_identified(self, username, source, target, msg):
         while "  " in msg:
             msg = msg.replace("  ", " ")
@@ -246,3 +267,15 @@ class BanManagementPlugin(BasePlugin):
                 self._on_hostmask(words[1], True, words[0], username, target, "1d", "", source)
             else:
                 self._bot._get_user_hostmask(words[1], self._on_hostmask, False, "!" + words[0], username, target, "1d", "", source)
+        
+        if username and words[0] in ["add", "remove", "list"] and words[1] == "badword" and username in all_operators:
+            if words[0] in ["add", "remove"]:
+                for word in words[2:]:
+                    if words[0] == 'add':
+                        self._db_query("INSERT INTO `badwords` VALUES (?)", [word])
+                    else:
+                        self._db_query("DELETE FROM `badwords` WHERE `badword` = ?", [word])
+                if hasattr(self, '_badwords'):
+                    delattr(self, '_badwords')
+            else:
+                self._start_task(self._send_badwords, username, source, target, msg)
