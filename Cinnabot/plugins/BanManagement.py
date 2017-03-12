@@ -56,6 +56,22 @@ class BanManagementPlugin(BasePlugin):
         bot._irc.execute_every(900, self._load_operators_flags)
         bot._irc.execute_every(60, self._check_expired_bans)
     
+    def get_help(self):
+        return {
+            "add badword": {
+                "syntax": "add badword <badword>",
+                "description": "Add a bad word to the list"
+            },
+            "remove badword": {
+                "syntax": "remove badword <badword>",
+                "description": "Remove a bad word from the list"
+            },
+            "list badword": {
+                "syntax": "list badword",
+                "description": "Show list of words identified as bad words"
+            }
+        }
+    
     def _load_operator_groups(self):
         if self._current_loading_group:
             return
@@ -249,7 +265,9 @@ class BanManagementPlugin(BasePlugin):
         self._bot._identify_user(source, self._on_privmsg_user_identified, source, target, msg)
     
     def _send_badwords(self, username, source, target, msg):
-        return [self.privmsg_response(username, ', '.join(self.badwords))]
+        badwords = self.badwords
+        badwords.sort()
+        return [self.privmsg_response(username, ', '.join(badwords))]
     
     def _on_privmsg_user_identified(self, username, source, target, msg):
         while "  " in msg:
