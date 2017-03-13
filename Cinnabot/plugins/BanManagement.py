@@ -126,7 +126,7 @@ class BanManagementPlugin(BasePlugin):
         self._bot._identify_user(source, self._on_channel_message_user_identified, source, target, msg)
         
         autoban_from_mask = self._get_config('autoban_from_mask')
-        words = [i.strip().lower() for i in msg.split(' ') if i.strip() != '']
+        words = re.split("\W+", msg)
         for badword in self.badwords:
             if badword in words:
                 for channel in self._channels:
