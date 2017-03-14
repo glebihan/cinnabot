@@ -128,20 +128,32 @@ class BanManagementPlugin(BasePlugin):
         
         autoban_from_mask = self._get_config('autoban_from_mask')
         
+        youtube_url = None
+        youtube_match = re.search("""(https://www\.youtube\.com/watch\?v=\w+)""", msg)
+        if youtube_match:
+            youtube_groups = youtube_match.groups()
+            youtube_url = youtube_groups[0]
+        
         words = [i.lower() for i in re.split("\W+", msg)]
         
         for badword in self.badwords:
             if badword in words:
                 for channel in self._channels:
                     self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
+                if youtube_url:
+                    try:
+                        new_badword = re.match("""^https://www\.youtube\.com/watch\?v=(\w+)$""", youtube_url).groups()[0]
+                        self._db_query("INSERT INTO `badwords` VALUES (?)", [new_badword.lower()])
+                        if hasattr(self, '_badwords'):
+                            delattr(self, '_badwords')
+                    except:
+                        pass
                 return
         
         words = []
         try:
-            youtube_match = re.search("""(https://www\.youtube\.com/watch\?v=\w+)""", msg)
-            if youtube_match:
-                url = youtube_match.groups()[0]
-                youtube_data = requests.get(url).text
+            if youtube_url:
+                youtube_data = requests.get(youtube_url).text
                 for w in re.findall("""<meta property="og:video:tag" content="(.+)">""", youtube_data):
                     words += [i.lower() for i in re.split("\W+", w)]
                 for w in re.findall("""<meta property="og:title" content="(.+)">""", youtube_data):
@@ -153,6 +165,14 @@ class BanManagementPlugin(BasePlugin):
             if badword in words:
                 for channel in self._channels:
                     self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
+                if youtube_url:
+                    try:
+                        new_badword = re.match("""^https://www\.youtube\.com/watch\?v=(\w+)$""", youtube_url).groups()[0]
+                        self._db_query("INSERT INTO `badwords` VALUES (?)", [new_badword.lower()])
+                        if hasattr(self, '_badwords'):
+                            delattr(self, '_badwords')
+                    except:
+                        pass
                 return
     
     def _kick(self, mask, nickname, channel, from_op, comment):
