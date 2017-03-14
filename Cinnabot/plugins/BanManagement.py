@@ -5,6 +5,7 @@ from Cinnabot.BasePlugin import BasePlugin
 import logging
 import re
 import datetime
+import requests
 
 CHANNEL_FLAGS_RE = re.compile("^[0-9]+\ +(\!?[a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)\ +\(\#([a-zA-Z0-9\\-\\_]+)\).*$")
 GROUPS_FLAGS_RE = re.compile("^[0-9]+\ +([a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)$")
@@ -126,11 +127,33 @@ class BanManagementPlugin(BasePlugin):
         self._bot._identify_user(source, self._on_channel_message_user_identified, source, target, msg)
         
         autoban_from_mask = self._get_config('autoban_from_mask')
+        
         words = [i.lower() for i in re.split("\W+", msg)]
+        
         for badword in self.badwords:
             if badword in words:
                 for channel in self._channels:
                     self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
+                return
+        
+        words = []
+        try:
+            youtube_match = re.search("""(https://www\.youtube\.com/watch\?v=\w+)""", msg)
+            if youtube_match:
+                url = youtube_match.groups()[0]
+                youtube_data = requests.get(url).text
+                for w in re.findall("""<meta property="og:video:tag" content="(.+)">""", youtube_data):
+                    words += [i.lower() for i in re.split("\W+", w)]
+                for w in re.findall("""<meta property="og:title" content="(.+)">""", youtube_data):
+                    words += [i.lower() for i in re.split("\W+", w)]
+        except:
+            pass
+        
+        for badword in self.badwords:
+            if badword in words:
+                for channel in self._channels:
+                    self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
+                return
     
     def _kick(self, mask, nickname, channel, from_op, comment):
         self._db_query("""
@@ -290,9 +313,9 @@ class BanManagementPlugin(BasePlugin):
             if words[0] in ["add", "remove"]:
                 for word in words[2:]:
                     if words[0] == 'add':
-                        self._db_query("INSERT INTO `badwords` VALUES (?)", [word])
+                        self._db_query("INSERT INTO `badwords` VALUES (?)", [word.lower()])
                     else:
-                        self._db_query("DELETE FROM `badwords` WHERE `badword` = ?", [word])
+                        self._db_query("DELETE FROM `badwords` WHERE `badword` = ?", [word.lower()])
                 if hasattr(self, '_badwords'):
                     delattr(self, '_badwords')
             else:
