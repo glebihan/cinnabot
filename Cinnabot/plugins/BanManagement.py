@@ -310,7 +310,12 @@ class BanManagementPlugin(BasePlugin):
     def _send_badwords(self, username, source, target, msg):
         badwords = self.badwords
         badwords.sort()
-        return [self.privmsg_response(username, ', '.join(badwords))]
+        res = []
+        while len(badwords) > 0:
+            wordsslice = badwords[:15]
+            badwords = badwords[15:]
+            res.append(self.privmsg_response(username, ', '.join(wordsslice)))
+        return res
     
     def _on_privmsg_user_identified(self, username, source, target, msg):
         while "  " in msg:
