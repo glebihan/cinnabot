@@ -27,9 +27,12 @@ class CommunityRegistrationPlugin(BasePlugin):
     def _do_change_code(self):
         new_code = '-'.join([''.join(random.sample('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 4)) for i in range(4)])
         data = {'username': self._get_config("username") ,'password': self._get_config("password"), 'login': 'Login'}
-        content = requests.post("https://community.linuxmint.com/auth/login", headers = {'Content-type' : 'application/x-www-form-urlencoded'}, data = data, verify = False).text
+        res = requests.post("https://community.linuxmint.com/auth/login", data = data, allow_redirects = False, verify = False)
+        cookies = {}
+        for i in res.cookies:
+            cookies[i.name] = i.value
         data = {'search': "Change code", 'passcode': new_code}
-        requests.post("https://community.linuxmint.com/user/change_registration_passcode", headers = {'Content-type' : 'application/x-www-form-urlencoded', 'Cookie' : resp["set-cookie"]}, data = data, verify = False)
+        requests.post("https://community.linuxmint.com/user/change_registration_passcode", cookies = cookies, data = data, verify = False)
             
     def get_cookies_str(self, cookies):
         cookies_array = []
