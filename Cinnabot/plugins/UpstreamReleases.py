@@ -35,11 +35,11 @@ DB_UPGRADES = {
 }
 
 IGNORE_COMMAND_RE = re.compile("^\\ *ignore\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:]+)\\ *$")
-DEIGNORE_COMMAND_RE = re.compile("^\\ *deignore\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:]+)\\ *$")
+DEIGNORE_COMMAND_RE = re.compile("^\\ *deignore\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:\+~]+)\\ *$")
 IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
 
 ADD_PIN_COMMAND_RE = re.compile("^\\ *add\\ +pin\\ +([a-z]+)\\ +([0-9a-z\-\.\_]+)\\ *$")
-IGNORE_PIN_COMMAND_RE = re.compile("^\\ *ignore\\ +pin\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:\+]+)\\ *$")
+IGNORE_PIN_COMMAND_RE = re.compile("^\\ *ignore\\ +pin\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:\+~]+)\\ *$")
 PINS_COMMAND_RE = re.compile("^\\ *pins\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
