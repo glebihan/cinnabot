@@ -184,7 +184,11 @@ class UpstreamReleasesPlugin(BasePlugin):
                 mint_package = "mint-flashplugin-24"
             else:
                 mint_package = package
-            current_versions_link = "http://chicago.linuxmint.com/pool/import/%s/%s/" % (mint_package[0], mint_package)
+            if package in ["firefox", "thunderbird"]:
+                component = "upstream"
+            else:
+                component = "import"
+            current_versions_link = "http://chicago.linuxmint.com/pool/%s/%s/%s/" % (component, mint_package[0], mint_package)
             resp, content = c.request(current_versions_link)
             for release in content.split("<a"):
                 try:
