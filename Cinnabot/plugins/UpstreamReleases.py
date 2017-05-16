@@ -40,6 +40,7 @@ IGNORED_COMMAND_RE = re.compile("^\\ *ignored\\ *$")
 
 ADD_PIN_COMMAND_RE = re.compile("^\\ *add\\ +pin\\ +([a-z]+)\\ +([0-9a-z\-\.\_]+)\\ *$")
 IGNORE_PIN_COMMAND_RE = re.compile("^\\ *ignore\\ +pin\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:\+~]+)\\ *$")
+DEIGNORE_PIN_COMMAND_RE = re.compile("^\\ *deignore\\ +pin\\ *([0-9a-z\-\.\_]+)\\ +([0-9\.\-a-z\:\+~]+)\\ *$")
 PINS_COMMAND_RE = re.compile("^\\ *pins\\ *$")
 
 class UpstreamReleasesPlugin(BasePlugin):
@@ -70,6 +71,10 @@ class UpstreamReleasesPlugin(BasePlugin):
             "ignore pin": {
                 "syntax": "ignore pin <package> <version>",
                 "description": "Don't receive notifications about a specific version of a package"
+            },
+            "deignore pin": {
+                "syntax": "deignore pin <package> <version>",
+                "description": "Cancels a previously used \"ignore pin\" command"
             },
             "pins": {
                 "syntax": "pins",
@@ -247,3 +252,7 @@ class UpstreamReleasesPlugin(BasePlugin):
         match = IGNORE_PIN_COMMAND_RE.match(msg)
         if match:
             self._db_query("INSERT INTO `pins_ignores` (`package`, `version`, `username`) VALUES (?, ?, ?)", match.groups() + (source.split('!')[0],))
+
+        match = DEIGNORE_PIN_COMMAND_RE.match(msg)
+        if match:
+            self._db_query("DELETE FROM `pins_ignores` WHERE `package` = ? AND `version` = ? AND `username` = ?", match.groups() + (source.split('!')[0],))
