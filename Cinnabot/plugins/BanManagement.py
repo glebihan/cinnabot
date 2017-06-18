@@ -161,19 +161,23 @@ class BanManagementPlugin(BasePlugin):
         except:
             pass
         
-        for badword in self.badwords:
-            if badword in words:
-                for channel in self._channels:
-                    self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
-                if youtube_url:
-                    try:
-                        new_badword = re.match("""^https://www\.youtube\.com/watch\?v=(\w+)$""", youtube_url).groups()[0]
-                        self._db_query("INSERT INTO `badwords` VALUES (?)", [new_badword.lower()])
-                        if hasattr(self, '_badwords'):
-                            delattr(self, '_badwords')
-                    except:
-                        pass
-                return
+        if self._get_config("filter_badwords") == "true":
+            print "yes"
+            for badword in self.badwords:
+                if badword in words:
+                    for channel in self._channels:
+                        self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
+                    if youtube_url:
+                        try:
+                            new_badword = re.match("""^https://www\.youtube\.com/watch\?v=(\w+)$""", youtube_url).groups()[0]
+                            self._db_query("INSERT INTO `badwords` VALUES (?)", [new_badword.lower()])
+                            if hasattr(self, '_badwords'):
+                                delattr(self, '_badwords')
+                        except:
+                            pass
+                    return
+        else:
+            print "no"
     
     def _kick(self, mask, nickname, channel, from_op, comment):
         self._db_query("""
