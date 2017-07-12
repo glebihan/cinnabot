@@ -136,33 +136,7 @@ class BanManagementPlugin(BasePlugin):
         
         words = [i.lower() for i in re.split("\W+", msg)]
         
-        for badword in self.badwords:
-            if badword in words:
-                for channel in self._channels:
-                    self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
-                if youtube_url:
-                    try:
-                        new_badword = re.match("""^https://www\.youtube\.com/watch\?v=(\w+)$""", youtube_url).groups()[0]
-                        self._db_query("INSERT INTO `badwords` VALUES (?)", [new_badword.lower()])
-                        if hasattr(self, '_badwords'):
-                            delattr(self, '_badwords')
-                    except:
-                        pass
-                return
-        
-        words = []
-        try:
-            if youtube_url:
-                youtube_data = requests.get(youtube_url).text
-                for w in re.findall("""<meta property="og:video:tag" content="(.+)">""", youtube_data):
-                    words += [i.lower() for i in re.split("\W+", w)]
-                for w in re.findall("""<meta property="og:title" content="(.+)">""", youtube_data):
-                    words += [i.lower() for i in re.split("\W+", w)]
-        except:
-            pass
-        
         if self._get_config("filter_badwords") == "true":
-            print "yes"
             for badword in self.badwords:
                 if badword in words:
                     for channel in self._channels:
@@ -176,8 +150,32 @@ class BanManagementPlugin(BasePlugin):
                         except:
                             pass
                     return
-        else:
-            print "no"
+        
+        words = []
+        try:
+            if youtube_url:
+                youtube_data = requests.get(youtube_url).text
+                for w in re.findall("""<meta property="og:video:tag" content="(.+)">""", youtube_data):
+                    words += [i.lower() for i in re.split("\W+", w)]
+                for w in re.findall("""<meta property="og:title" content="(.+)">""", youtube_data):
+                    words += [i.lower() for i in re.split("\W+", w)]
+        except:
+            pass
+        
+        if self._get_config("filter_badwords") == "true":
+            for badword in self.badwords:
+                if badword in words:
+                    for channel in self._channels:
+                        self._on_channel_message_user_identified(autoban_from_mask.split('!')[0], autoban_from_mask, channel, '!kickban ' + source.split('!')[0])
+                    if youtube_url:
+                        try:
+                            new_badword = re.match("""^https://www\.youtube\.com/watch\?v=(\w+)$""", youtube_url).groups()[0]
+                            self._db_query("INSERT INTO `badwords` VALUES (?)", [new_badword.lower()])
+                            if hasattr(self, '_badwords'):
+                                delattr(self, '_badwords')
+                        except:
+                            pass
+                    return
     
     def _kick(self, mask, nickname, channel, from_op, comment):
         self._db_query("""
