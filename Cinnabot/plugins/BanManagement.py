@@ -197,11 +197,15 @@ class BanManagementPlugin(BasePlugin):
             elif unit == "d":
                 endtime = datetime.datetime.utcnow() + datetime.timedelta(int(value))
             endtime = endtime.strftime("%Y-%m-%d %H:%M:%S")
+        countBans = self._db_query("SELECT COUNT(*) FROM `bans` WHERE `removed` = 0 AND `channel` = ? AND `mask` = ?", (channel, mask))[0][0]
         self._db_query("UPDATE `bans` SET `removed` = 1 WHERE `channel` = ? AND `mask` = ?", (channel, mask))
         self._db_query("""
             INSERT INTO `bans` (`mask`, `nickname`, `channel`, `from_op`, `ban_date`, `ban_expiration`, `comment`, `removed`)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0)""", (mask, nickname, channel, from_op, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), endtime, comment))
-        return [self.ban_response(mask, channel)]
+        res = [self.ban_response(mask, channel)]
+        if countBans > 0:
+            res.append(self.notice_response(from_op.split("!")[0], "Ban updated successfully"))
+        return res
     
     def _unban(self, mask, channel):
         self._db_query("UPDATE `bans` SET `removed` = 1 WHERE `channel` = ? AND `mask` = ?", (channel, mask))
