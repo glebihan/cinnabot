@@ -85,7 +85,7 @@ class UpstreamReleasesPlugin(BasePlugin):
     def _check_releases(self):
         self._start_task(self._do_check_releases, "firefox")
         self._start_task(self._do_check_releases, "thunderbird")
-        self._start_task(self._do_check_releases, "virtualbox")
+        #~ self._start_task(self._do_check_releases, "virtualbox")
         self._start_task(self._do_check_releases, "flash")
         #~ self._start_task(self._do_check_releases, "hplip")
         self._start_task(self._check_pin_releases)
