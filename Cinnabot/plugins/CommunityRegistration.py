@@ -7,19 +7,33 @@ import urllib
 import requests
 import random
 
+USE_DB = True
+DB_UPGRADES = {
+    1: [
+        """CREATE TABLE IF NOT EXISTS `ignore_users` (
+            `user_id`
+        )"""
+    ]
+}
+
 class CommunityRegistrationPlugin(BasePlugin):
     def __init__(self, bot, plugin_name):
         BasePlugin.__init__(self, bot, plugin_name)
         self._users_with_code = {}
-        if self._has_config("ignore_users"):
-            self._ignore_users = self._get_config("ignore_users").split(",")
-        else:
-            self._ignore_users = []
-        
         try:
             bot._irc.execute_every(int(self._get_config("change_code_delay")) * 3600, self._change_code)
         except:
             pass
+    
+    def _get_ignore_users(self):
+        if not hasattr(self, '_ignore_users'):
+            self._ignore_users = [i[0] for i in self._db_query("SELECT user_id FROM ignore_users")]
+        return self._ignore_users
+    ignore_users = property(_get_ignore_users)
+    
+    def add_ignore_user(self, username):
+        self._db_query("INSERT INTO ignore_users (user_id) VALUES (?)", (username,))
+        self._ignore_users.append(username)
     
     def _change_code(self):
         self._start_task(self._do_change_code)
@@ -66,9 +80,8 @@ class CommunityRegistrationPlugin(BasePlugin):
             self._change_code()
             return
             
-        if from_username and msg.lower() in ["nomorecodes", "no more codes"] and not from_username in self._ignore_users:
-            self._ignore_users.append(from_username)
-            self._set_config("ignore_users", ",".join(self._ignore_users))
+        if from_username and msg.lower() in ["nomorecodes", "no more codes"] and not from_username in self.ignore_users:
+            self.add_ignore_user(from_username)
             return self.privmsg_response(source.split("!")[0], "OK, I won't send you registration codes anymore")
         
     def process_channel_message(self, source, target, msg):
@@ -88,7 +101,7 @@ class CommunityRegistrationPlugin(BasePlugin):
         
         if (("denregistrement" in words_lower or "enregistrement" in words_lower) and "code" in words_lower) or ("registro" in words_lower and (u'c\ufffddigo' in words_lower or 'codigo' in words_lower)) or ("registration" in words_lower and "code" in words_lower) or ("community" in words_lower and "code" in words_lower) or ("registration" in words_lower and "community" in words_lower) or ("reg code" in msg.lower()) or ("reg. code" in msg.lower()):
             from_nickname = source.split("!")[0]
-            if from_nickname in self._bot._nick_to_username_map and self._bot._nick_to_username_map[from_nickname] in self._ignore_users:
+            if from_nickname in self._bot._nick_to_username_map and self._bot._nick_to_username_map[from_nickname] in self.ignore_users:
                 return
             if not source in self._users_with_code or ((time.time() - self._users_with_code[source]) > 300):
                 self._users_with_code[source] = time.time()
