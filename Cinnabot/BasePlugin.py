@@ -276,6 +276,8 @@ class BasePlugin(object):
         return TimedQuietResponse(self, channel, user, quiet_time, debug_mode)
     
     def kick_response(self, nickname, channel, comment = ""):
+        if not comment and self._has_config('default_kick_message'):
+            comment = self._get_config('default_kick_message')
         return PluginKickResponse(nickname, channel, comment)
     
     def ban_response(self, mask, channel):
