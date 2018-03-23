@@ -32,6 +32,8 @@ class RSSPlugin(BasePlugin):
     def _do_check_new_posts(self):
         logging.info("RSSPlugin:_do_check_new_posts")
         
+        output_channels = self._get_config("output_channel").split(',')
+        
         res = []
         for url in self._feed_urls:
             feed = feedparser.parse(url)
@@ -40,10 +42,11 @@ class RSSPlugin(BasePlugin):
                     self._known_posts.append(item["id"])
                 elif item["id"] not in self._known_posts:
                     self._known_posts.append(item["id"])
-                    if "author" in item:
-                        res.append(self.privmsg_response(self._get_config("output_channel"), u"[\x0313%s\x0f] \x0314New post\x0f \x0315%s\x0f: %s \x0302\x1f%s\x0f" % (feed["feed"]["title"], item["author"], item["title"], item["link"])))
-                    else:
-                        res.append(self.privmsg_response(self._get_config("output_channel"), u"[\x0313%s\x0f] \x0314New post\x0f %s \x0302\x1f%s\x0f" % (feed["feed"]["title"], item["title"], item["link"])))
+                    for channel in output_channels:
+                        if "author" in item:
+                            res.append(self.privmsg_response(channel, u"[\x0313%s\x0f] \x0314New post\x0f \x0315%s\x0f: %s \x0302\x1f%s\x0f" % (feed["feed"]["title"], item["author"], item["title"], item["link"])))
+                        else:
+                            res.append(self.privmsg_response(channel, u"[\x0313%s\x0f] \x0314New post\x0f %s \x0302\x1f%s\x0f" % (feed["feed"]["title"], item["title"], item["link"])))
                     return res
         
         self._has_run = True
