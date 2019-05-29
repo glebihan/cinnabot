@@ -7,7 +7,8 @@ import re
 import datetime
 import requests
 
-CHANNEL_FLAGS_RE = re.compile("^[0-9]+\ +(\!?[a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)\ +\(\#([a-zA-Z0-9\\-\\_]+)\).*$")
+CHANNEL_FLAGS_RE = re.compile("^[0-9]+\ +(\!?[a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)\ +.*$")
+END_CHANNEL_FLAGS_RE = re.compile("^End of .+ FLAGS listing.$")
 GROUPS_FLAGS_RE = re.compile("^[0-9]+\ +([a-zA-Z0-9_\[\]\|\^\`\-]+)\ +\+([a-zA-Z]+)$")
 END_GROUPS_FLAGS_RE = re.compile("^End of (\![a-zA-Z0-9_\[\]\|\^\`\-]+) FLAGS listing.$")
 
@@ -52,6 +53,8 @@ class BanManagementPlugin(BasePlugin):
         
         self._channels = self._get_config("channels").split(",")
         self._current_loading_group = None
+        self._channel_flags_to_load = []
+        self._loading_flags_for_channel = None
         self._load_operators_flags()
         
         bot._irc.execute_every(900, self._load_operators_flags)
@@ -88,14 +91,21 @@ class BanManagementPlugin(BasePlugin):
 
         match = CHANNEL_FLAGS_RE.match(event.arguments[0])
         if match:
-            username, flags, channel = match.groups()
+            username, flags = match.groups()
             if "o" in flags or "O" in flags or "h" in flags or "H" in flags:
-                self._operators.setdefault("#" + channel, []).append(username)
-        for channel in self._operators:
-            for username in self._operators[channel]:
-                if username.startswith("!") and not username in self._operators_groups:
-                    self._operators_groups[username] = None
-                    self._load_operator_groups()
+                self._operators.setdefault(self._loading_flags_for_channel, []).append(username)
+        
+        match = END_CHANNEL_FLAGS_RE.match(event.arguments[0])
+        if match:
+            self._loading_flags_for_channel = None
+            if len(self._channel_flags_to_load) > 0:
+                self._load_operators_flags_once()
+            else:
+                for channel in self._operators:
+                    for username in self._operators[channel]:
+                        if username.startswith("!") and not username in self._operators_groups:
+                            self._operators_groups[username] = None
+                            self._load_operator_groups()
         
         match = GROUPS_FLAGS_RE.match(event.arguments[0])
         if match:
@@ -114,8 +124,14 @@ class BanManagementPlugin(BasePlugin):
     def _load_operators_flags(self):
         self._operators = {}
         self._operators_groups = {}
-        for i in self._channels:
-            self._bot._irc_server_connection.privmsg("ChanServ", "flags %s" % i)
+        self._channel_flags_to_load = [i for i in self._channels]
+        self._load_operators_flags_once()
+    
+    def _load_operators_flags_once(self):
+        if self._loading_flags_for_channel is None and len(self._channel_flags_to_load) > 0:
+            self._loading_flags_for_channel = self._channel_flags_to_load[0]
+            self._channel_flags_to_load = self._channel_flags_to_load[1:]
+            self._bot._irc_server_connection.privmsg("ChanServ", "flags %s" % self._loading_flags_for_channel)
     
     def _get_badwords(self):
         if not hasattr(self, '_badwords'):
